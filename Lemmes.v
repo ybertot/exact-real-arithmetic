@@ -4,6 +4,7 @@
 Require Export definition.
 Require Import Tactiques.
 Require Import Fourier.
+Require Import Lra.
 Require Import Axiomes.
 Require Import sg.
 Require Import Zarith_operations.
@@ -70,7 +71,7 @@ RingReplace (1 + (1 - 1)) 1.
 replace 1 with (IZR (Zsucc 0)).
 apply IZR_le.
 apply Zgt_le_succ.
-apply Zlt_gt.
+apply Z.lt_gt.
 auto.
 trivial.
 rewrite Rmult_comm.
@@ -82,7 +83,7 @@ Hint Resolve sg_Zsgn: real.
 
 Lemma sg_Zsgn_abs :
  forall (x : R) (xc : Reelc) (n : Z),
- encadrement (absolue_reelc xc) (Rabs x) -> (0 < Zabs (xc n))%Z -> 0 < Rabs x.  
+ encadrement (absolue_reelc xc) (Rabs x) -> (0 < Z.abs (xc n))%Z -> 0 < Rabs x.  
 
 Proof.
 intros.
@@ -104,7 +105,7 @@ RingReplace (1 + (1 - 1)) 1.
 replace 1 with (IZR (Zsucc 0)).
 apply IZR_le.
 apply Zgt_le_succ.
-apply Zlt_gt.
+apply Z.lt_gt.
 auto.
 trivial.
 rewrite Rmult_comm.
@@ -133,7 +134,7 @@ replace (-1) with (IZR (Zpred 0)).
 apply IZR_le.
 apply Zlt_succ_le.
 simpl in |- *.
-apply Zgt_lt; auto.
+apply Z.gt_lt; auto.
 trivial.
 Qed.
 
@@ -146,30 +147,30 @@ Proof.
 intros.
 apply Zle_add_compatibility.
 unfold p_max in |- *.
-apply Zle_trans with (Zeven.Zquot2 (n + 2) + Zeven.Zquot2 (n + 2))%Z;
+apply Zle_trans with (Z.quot2 (n + 2) + Z.quot2 (n + 2))%Z;
  [ idtac | apply Zplus_le_compat; apply Zle_max_r ].
-RingReplace (Zeven.Zquot2 (n + 2) + Zeven.Zquot2 (n + 2))%Z
- (2 * Zeven.Zquot2 (n + 2))%Z.
+RingReplace (Z.quot2 (n + 2) + Z.quot2 (n + 2))%Z
+ (2 * Z.quot2 (n + 2))%Z.
 cut ({Zeven.Zeven (n + 2)} + {Zeven.Zodd (n + 2)});
  [ idtac | apply Zeven.Zeven_odd_dec ].
 intros.
 elim H; clear H.
-intro; replace (2 * Zeven.Zquot2 (n + 2))%Z with (n + 2)%Z;
+intro; replace (2 * Z.quot2 (n + 2))%Z with (n + 2)%Z;
  [ idtac | apply Zeven.Zeven_quot2; auto ]. 
 rewrite Zplus_comm; apply Zplus_le_compat_l.
 omega.
 cut ((n + 2 <= 0)%Z \/ (0 <= n + 2)%Z); [ idtac | apply Zlt_le_ind ].
 intro; elim H; clear H.
 intros; rewrite Zplus_comm; apply Zplus_le_reg_r with (-1)%Z.
-RingReplace (2 * Zeven.Zquot2 (n + 2) + -1)%Z (2 * Zeven.Zquot2 (n + 2) - 1)%Z;
+RingReplace (2 * Z.quot2 (n + 2) + -1)%Z (2 * Z.quot2 (n + 2) - 1)%Z;
  RingReplace (n + 1 + -1)%Z n.
-replace (2 * Zeven.Zquot2 (n + 2) - 1)%Z with (n + 2)%Z;
+replace (2 * Z.quot2 (n + 2) - 1)%Z with (n + 2)%Z;
  [ idtac | apply Zodd_quot2_bis; auto ]. 
 pattern n at 1 in |- *; RingReplace n (n + 0)%Z.
 apply Zplus_le_compat_l.
 omega.
 intros; rewrite Zplus_comm; apply Zplus_le_reg_r with 1%Z.
-replace (2 * Zeven.Zquot2 (n + 2) + 1)%Z with (n + 2)%Z;
+replace (2 * Z.quot2 (n + 2) + 1)%Z with (n + 2)%Z;
  [ idtac | apply Zeven.Zodd_quot2; auto ]. 
 rewrite <- Zplus_assoc.
 apply Zplus_le_compat_l.
@@ -182,18 +183,18 @@ Qed.
 Lemma Zsgn_sg :
  forall (X : R) (XC YC : Reelc) (n : Z),
  encadrement XC X ->
- (0 < Zabs (XC (p_max YC n)))%Z -> Zsgn (XC (p_max YC n)) = sg X.
+ (0 < Z.abs (XC (p_max YC n)))%Z -> Z.sgn (XC (p_max YC n)) = sg X.
 intros X XC YC n H.
 intro.
 pattern (XC (p_max YC n)) in |- *.
 apply Zabs_pos_ind.
-intros; replace (Zsgn (XC (p_max YC n))) with 1%Z;
+intros; replace (Z.sgn (XC (p_max YC n))) with 1%Z;
  [ symmetry  in |- *; apply sg_pos; apply sg_Zsgn with XC (p_max YC n);
     [ auto | auto ]
  | symmetry  in |- *; apply Zsgn_pos; auto ].
-intros; replace (Zsgn (XC (p_max YC n))) with (-1)%Z;
+intros; replace (Z.sgn (XC (p_max YC n))) with (-1)%Z;
  [ symmetry  in |- *; apply sg_neg; apply sg_Zsgn_2 with XC (p_max YC n);
-    [ auto | apply Zlt_gt; auto ]
+    [ auto | apply Z.lt_gt; auto ]
  | symmetry  in |- *; apply Zsgn_neg; auto ].
 auto.
 Qed.
@@ -203,17 +204,17 @@ Hint Resolve Zsgn_sg: real.
 
 Lemma Zsgn_sg_bis :
  forall (x : R) (xc : Reelc) (n : Z),
- encadrement xc x -> (0 < Zabs (xc n))%Z -> Zsgn (xc n) = sg x.
+ encadrement xc x -> (0 < Z.abs (xc n))%Z -> Z.sgn (xc n) = sg x.
 intros x xc n H.
 intro.
 pattern (xc n) in |- *.
 apply Zabs_pos_ind.
-intros; replace (Zsgn (xc n)) with 1%Z;
+intros; replace (Z.sgn (xc n)) with 1%Z;
  [ symmetry  in |- *; apply sg_pos; apply sg_Zsgn with xc n; [ auto | auto ]
  | symmetry  in |- *; apply Zsgn_pos; auto ].
-intros; replace (Zsgn (xc n)) with (-1)%Z;
+intros; replace (Z.sgn (xc n)) with (-1)%Z;
  [ symmetry  in |- *; apply sg_neg; apply sg_Zsgn_2 with xc n;
-    [ auto | apply Zlt_gt; auto ]
+    [ auto | apply Z.lt_gt; auto ]
  | symmetry  in |- *; apply Zsgn_neg; auto ].
 auto.
 Qed.
@@ -225,14 +226,14 @@ Lemma Zsgn_to_sg :
  forall (xc yc : Reelc) (x y : R) (n : Z),
  encadrement xc x ->
  encadrement yc y ->
- (0 < Zabs (xc (p_max yc n)))%Z ->
+ (0 < Z.abs (xc (p_max yc n)))%Z ->
  IZR
-   (Zsgn (xc (p_max yc n)) * Zsgn (yc (p_max xc n)) *
-    gauss_z_sur_B_pow (1 + Zabs (xc (p_max yc n) * yc (p_max xc n)))
+   (Z.sgn (xc (p_max yc n)) * Z.sgn (yc (p_max xc n)) *
+    gauss_z_sur_B_pow (1 + Z.abs (xc (p_max yc n) * yc (p_max xc n)))
       (p_max yc n + p_max xc n - n)) =
  IZR
    (sg x * sg y *
-    gauss_z_sur_B_pow (1 + Zabs (xc (p_max yc n) * yc (p_max xc n)))
+    gauss_z_sur_B_pow (1 + Z.abs (xc (p_max yc n) * yc (p_max xc n)))
       (p_max yc n + p_max xc n - n)).
 
 Proof.
@@ -258,17 +259,17 @@ rewrite Rmult_comm; rewrite Rmult_1_r.
 apply Rlt_sub_compatibility.
 replace (-1 + 1 * / 2) with (-1 * / 2).
 apply Rlt_trans with 0.
-fourier.
+lra.
 apply Rinv_0_lt_compat; unfold B_powerRZ in |- *; apply powerRZ_lt;
  apply INR_B_non_nul.
-field; apply Rgt_not_eq; fourier.
+field; apply Rgt_not_eq; lra.
 RingReplace (IZR 1) 1.
 rewrite Rmult_comm; rewrite Rmult_1_r.
 apply Rlt_add_compatibility3.
 replace (1 - 1 * / 2) with (1 * / 2).
 rewrite Rmult_comm; rewrite Rmult_1_r.
 apply Rinv_1_lt_contravar.
-fourier.
+lra.
 unfold B_powerRZ in |- *.
 apply Rlt_le_trans with (INR B).
 RingReplace 2 (INR 2).
@@ -281,10 +282,10 @@ apply le_INR.
 generalize B_sup_4.
 omega.
 apply le_pmax_n. 
-field; apply Rgt_not_eq; fourier.
+field; apply Rgt_not_eq; lra.
 intro.
-replace (Zsgn (xc (p_max yc n))) with (sg x).
-replace (Zsgn (yc (p_max xc n))) with (sg y).
+replace (Z.sgn (xc (p_max yc n))) with (sg x).
+replace (Z.sgn (yc (p_max xc n))) with (sg y).
 auto.
 symmetry  in |- *; apply Zsgn_sg; auto; auto.
 symmetry  in |- *; apply Zsgn_sg; auto; auto.

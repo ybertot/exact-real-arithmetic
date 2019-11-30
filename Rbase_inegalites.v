@@ -3,6 +3,7 @@
 
 Require Import Reals.
 Require Import Fourier.
+Require Import Lra.
 Require Import Tactiques.
 Require Import Rbase_operations.
 
@@ -15,70 +16,70 @@ Hint Resolve Rlt_gt: real.
 
 Lemma Rge_minus : forall x y z : R, y <= z -> x - y >= x - z.
 Proof.
-intros; fourier.
+intros; lra.
 Qed.
 Hint Resolve Rge_minus: real.
 
 
 Lemma Rlt_add_compatibility : forall x y z : R, x < y + z -> x - y < z. 
 Proof.
-intros; fourier.
+intros; lra.
 Qed.
 Hint Resolve Rlt_add_compatibility: real.
 
 
 Lemma Rlt_add_compatibility2 : forall x y z : R, x - z < y -> x < y + z.
 Proof.
-intros; fourier.
+intros; lra.
 Qed.
 Hint Resolve Rlt_add_compatibility2: real.
 
 
 Lemma Rle_add_compatibility : forall x y z : R, x + y <= z -> x <= z - y.
 Proof.
-intros; fourier.
+intros; lra.
 Qed.
 Hint Resolve Rle_add_compatibility: real.
 
 
 Lemma Rle_sub_compatibility : forall x y z : R, x <= z + y -> x - y <= z.
 Proof.
-intros; fourier.
+intros; lra.
 Qed.
 Hint Resolve Rle_sub_compatibility: real. 
 
 
 Lemma Rle_sub_compatibility2 : forall x y z : R, x - y <= z -> x <= z + y.
 Proof.
-intros; fourier.
+intros; lra.
 Qed.
 Hint Resolve Rle_sub_compatibility2: real.
 
 
 Lemma Rlt_add_compatibility3 : forall x y z : R, x < z - y -> x + y < z.
 Proof.
-intros; fourier.
+intros; lra.
 Qed.
 Hint Resolve Rlt_add_compatibility3: real.
 
 
 Lemma Rlt_sub_compatibility : forall x y z : R, x + y < z -> x < z - y.
 Proof.
-intros; fourier.
+intros; lra.
 Qed.
 Hint Resolve Rlt_sub_compatibility: real.
 
 
 Lemma Rlt_add_compatibility4 : forall x y z : R, x - y < z -> x < y + z.
 Proof.
-intros; fourier.
+intros; lra.
 Qed.
 Hint Resolve Rlt_add_compatibility4: real.
 
 
 Lemma Rle_sub_r : forall r r1 r2 : R, r2 <= r1 -> r - r1 <= r - r2.
 Proof.
-intros; fourier.
+intros; lra.
 Qed.
 Hint Resolve Rle_sub_r: real.
 
@@ -106,7 +107,7 @@ Hint Resolve Rlt_r_O: real.
 
 Lemma Rlt_sub_O : forall r1 r2 : R, 0 < r1 - r2 -> r2 < r1.
 Proof.
-intros; fourier.
+intros; lra.
 Qed.
 Hint Resolve Rlt_sub_O: real.
 
@@ -140,7 +141,8 @@ Proof.
 intros.
 apply Rmult_lt_reg_l with r; auto.
 rewrite Rmult_comm.
-apply Rfourier_gt_to_lt.
+fold Rgt.
+apply Rgt_lt.
 rewrite <- Rmult_assoc; rewrite Rmult_comm; rewrite <- Rmult_assoc;
  rewrite <- Rinv_l_sym.
 rewrite Rmult_comm; rewrite RIneq.Rmult_1_r; apply Rlt_gt; auto.
