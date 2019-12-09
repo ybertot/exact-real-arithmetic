@@ -7,17 +7,25 @@ Require Import Rbase_doubles_inegalites.
 
 Axiom B_sup_4 : 4 <= B.
 
+Definition msd_prop (xc : Reelc) (msdx : Z) : Prop :=
+    (forall n : Z, (n < msdx)%Z -> (Z.abs (xc n) <= 1)%Z) /\
+    (Z.abs (xc msdx) > 1)%Z.
+  
+(* suggestion de correction.
 Axiom msd_c :
-    forall xc : Reelc,
+    forall (x : R) (xc : Reelc), x <> 0%R -> encadrement xc x ->
     (forall n : Z, (n < msd xc)%Z -> (Z.abs (xc n) <= 1)%Z) /\
-    (Z.abs (xc (msd xc)) > 1)%Z. 
+    (Z.abs (xc (msd xc)) > 1)%Z.  *)
 
+(*
 Lemma inconsistent_msd: False.
 Proof.
 destruct (msd_c (fun x => 0%Z)) as [_ it].
 revert it; discriminate.
 Qed.
+*)
 
+(*
 Lemma intermediaire :
  forall (xc : Reelc) (m : Z),
  msd xc = m ->
@@ -27,6 +35,7 @@ intros xc m a.
 rewrite <- a.
 apply msd_c.
 Qed.
+*)
 
 Lemma msd_c_bis :
  forall (xc : Reelc) (m : Z),

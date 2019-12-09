@@ -34,6 +34,13 @@ Qed.
 Hint Resolve gauss_sur_B_O: real.
 
 
+(*
+Axiom msd_c :
+    forall xc : Reelc,
+    (forall n : Z, (n < msd xc)%Z -> (Z.abs (xc n) <= 1)%Z) /\
+    (Z.abs (xc (msd xc)) > 1)%Z. 
+
+
 Lemma msd_ax1 :
  forall (xc yc : Reelc) (n : Z),
  (1 < Z.abs (xc (p_max yc n)))%Z -> (msd xc <= p_max yc n)%Z.
@@ -53,7 +60,6 @@ apply Zlt_not_le; auto.
 generalize (msd_c xc); intuition.
 Qed.
 
-
 Lemma msd_ax3 :
  forall (xc yc : Reelc) (n : Z),
  (p_max yc n < msd xc)%Z -> (Z.abs (xc (p_max yc n)) <= 1)%Z.
@@ -69,7 +75,7 @@ apply Zlt_not_le; auto.
 cut ((1 < Z.abs (xc (p_max yc n)))%Z -> (msd xc <= p_max yc n)%Z);
  [ tauto | apply msd_ax1 ].
 Qed.
-
+*)
 
 Lemma B_INR_1 : forall B, (4<=B)%nat -> 1 <= INR B.
 Proof.
@@ -144,11 +150,12 @@ Qed.
 (*Probleme :reecrire toutes les ingalites dans R *)
 
 Lemma msd_prop1 :
- forall (x : R) (xc : Reelc),
+ forall (x : R) (xc : Reelc) (msdx : Z),
  x <> 0 ->
  encadrement xc x ->
- {msd xc = (- Int_part (Rlog (Rabs x) (INR B)))%Z} +
- {msd xc = (- Int_part (Rlog (Rabs x) (INR B)) + 1)%Z}.  
+
+ {msdx = (- Int_part (Rlog (Rabs x) (INR B)))%Z} +
+ {msdx = (- Int_part (Rlog (Rabs x) (INR B)) + 1)%Z}.  
 
 Proof.
 intros.
