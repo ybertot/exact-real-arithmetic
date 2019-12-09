@@ -71,16 +71,42 @@ Definition absolue_reelc (xc : Reelc) : Reelc := fun n : Z => Z.abs (xc n).
 Definition addition_reelc (xc yc : Reelc) : Reelc :=
   fun n : Z => gauss_z_sur_B (xc (n + 1)%Z + yc (n + 1)%Z).
  
-Parameter msd : Reelc -> Z.
+Fixpoint compute_msd_N (xc : Reelc) (n current stop : Z) (fuel : nat) : Z :=
+  match fuel with
+  | 0 => stop
+  | S fuel' =>
+    let Vxc := xc current in
+    if (1 <? Z.abs Vxc)%Z then
+      current
+    else
+      compute_msd_N xc n (current + 1)%Z stop fuel'
+  end.
 
-Definition p_max (xc : Reelc) (n : Z) : Z :=
-  Zmax (n - msd xc + 3) (Z.quot2 (n + 2)). 
+(* If the most significant digit (msd) of x is not yet known, this function
+   will attempt to compute it with a limited amount of recursive calls
+   (as described in compute_pmax_N). 
+   If this computation attempt succeeds, the value should be stored for xc,
+   but the side-effect infrastructure required for this is not part of
+   the current model.
 
-Definition multiplication_reelc (xc yc : Reelc) : Reelc :=
+   This limited computation of the most significant digit is described in
+   page 25 of V. Ménissier-Morain article in JLAP, Vol. 64 (2005), page 24
+*)
+Definition p_max (xc : Reelc) (msd_x : option Z) (n : Z) : Z :=
+  let stop := Z.quot2 (n + 2) in
+  let v_msd :=
+    match msd_x with
+    | Some v => v
+    | None => compute_msd_N xc n 0 stop (Z.to_nat (n + 3 -Z.quot2 n))
+    end in
+    Zmax (n - v_msd + 3) stop.
+
+Definition multiplication_reelc (xc yc : Reelc)
+  (msd_x msd_y : option Z): Reelc :=
   fun n : Z =>
-  (Z.sgn (xc (p_max yc n)) * Z.sgn (yc (p_max xc n)) *
-   gauss_z_sur_B_pow (1 + Z.abs (xc (p_max yc n) * yc (p_max xc n)))
-     (p_max yc n + p_max xc n - n))%Z.
+  (Z.sgn (xc (p_max yc msd_y n)) * Z.sgn (yc (p_max xc msd_x n)) *
+   gauss_z_sur_B_pow (1 + Z.abs (xc (p_max yc msd_y n) * yc (p_max xc msd_x n)))
+     (p_max yc msd_y n + p_max xc msd_x n - n))%Z.
 
 Require Import Zdiv.
 
@@ -90,29 +116,18 @@ Definition Zdiv_sup (a b : Z) :=
   | right _ => Z.succ (a / b)
   end.
 
-Definition inverse_reelc (xc : Reelc) : Reelc :=
+(* In the original paper, msd is described as a function that may not
+  terminate when the argument xc represents zero.  Here, we prefer
+  to describe the inverse_reelc function as taking as extra argument
+  which expresses the order of magnitude of the input.  It is actually
+  a witness that the input is non-zero. *)
+Definition inverse_reelc (xc : Reelc) (msdx : Z) : Reelc :=
   fun n : Z =>
-  match Z_le_gt_dec n (- msd xc) with
+  match Z_le_gt_dec n (- msdx) with
   | left _ => 0%Z
   | right _ =>
-      match Z_gt_le_dec (xc (n + 2 * msd xc + 1)%Z) 1 with
-      | left _ =>
-          Zdiv_sup (B_powerZ (2 * n + 2 * msd xc + 1))
-            (xc (n + 2 * msd xc + 1)%Z)
-      | right _ =>
-          (B_powerZ (2 * n + 2 * msd xc + 1) / xc (n + 2 * msd xc + 1))%Z
-      end
+     (B_powerZ (2 * n + 2 * msdx + 1) / (xc (n + 2 * msdx + 1) + 1) + 1)%Z
   end.    
 
 Definition racine_reelc (xc : Reelc) : Reelc :=
   fun n : Z => Z.sqrt (xc (Z.succ (Z.succ 0) * n)%Z).
-
-
-
-
-
-
-
-
-
-

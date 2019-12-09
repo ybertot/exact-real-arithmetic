@@ -4,6 +4,7 @@ Absolue.v
 Addition.v 
 Axiomes.v 
 definition.v 
+inverse_lemma.v
 Inverse.v 
 Lemmes_generaux.v 
 Lemmes.v 
