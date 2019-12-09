@@ -38,36 +38,35 @@ Qed.
 *)
 
 Lemma msd_c_bis :
- forall (xc : Reelc) (m : Z),
+ forall (xc : Reelc) (msdx m : Z),
+ msd_prop xc msdx ->
  (forall n : Z, (n < m)%Z -> (Z.abs (xc n) <= 1)%Z) /\ (Z.abs (xc m) > 1)%Z ->
- msd xc = m. 
+ msdx = m. 
 Proof.
-intros xc m (H1, H2).
-generalize (msd_c xc); intuition.
-assert (cmp : (m < msd xc)%Z \/ m = msd xc \/ (msd xc < m)%Z).
-omega.
+intros xc msdx m msdx_p (H1, H2).
+unfold msd_prop in msdx_p.
+assert (cmp : (m < msdx)%Z \/ m = msdx \/ (msdx < m)%Z) by omega.
 intuition.
-generalize (H0 m H); intro; omega.
-generalize (H1 (msd xc) H4); intro; omega.
+generalize (H m H3); omega.
+generalize (H1 (msdx) H4); intro; omega.
 Qed.
 
-Lemma msd_c_ter : forall xc : Reelc, (1 < Z.abs (xc (msd xc)))%Z.
+(* TODO: remove this lemma. *)
+Lemma msd_c_ter : forall (xc : Reelc) msdx, 
+  msd_prop xc msdx ->
+  (1 < Z.abs (xc msdx))%Z.
 Proof.
-intros.
-apply Z.gt_lt.
-generalize (msd_c xc); intros (h1, h2).
-generalize (h1 (Z.pred (msd xc))); auto.
+intros xc msdx [h1 h2]; apply Z.gt_lt; auto.
 Qed.
 
 
-Lemma msd_c_4 : forall xc : Reelc, (IZR (Z.abs (xc (Z.pred (msd xc)))) <= 1)%R.
+Lemma msd_c_4 : forall (xc : Reelc) msdx,
+  msd_prop xc msdx ->
+  (IZR (Z.abs (xc (Z.pred msdx))) <= 1)%R.
 Proof.
-intros.
+intros xc msdx [h1 h2].
 RingReplace 1%R (IZR (Z.succ 0)); apply IZR_le.
-simpl in |- *.
-generalize (msd_c xc); intros (h1, h2).
-generalize (h1 (Z.pred (msd xc))); intro.
-auto with zarith.
+generalize (h1 (Z.pred msdx)); auto with zarith.
 Qed.
 
 

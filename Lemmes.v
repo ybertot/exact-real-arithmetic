@@ -132,11 +132,17 @@ Qed.
 
 Hint Resolve sg_Zsgn_2: real. 
 
-Lemma le_pmax_n :
- forall (xc yc : Reelc) (n : Z), (1 <= p_max yc n + p_max xc n - n)%Z.
+Definition omsd_prop (xc : Reelc) (msdx : option Z) : Prop :=
+  match msdx with
+  | None => True
+  | Some v => msd_prop xc v
+  end.
 
+Lemma le_pmax_n :
+ forall (xc yc : Reelc) (msdx msdy : option Z) (n : Z),
+ (1 <= p_max yc msdy n + p_max xc msdx n - n)%Z.
 Proof.
-intros.
+intros xc yc msdx msdy n.
 apply Zle_add_compatibility.
 unfold p_max in |- *.
 apply Z.le_trans with (Z.quot2 (n + 2) + Z.quot2 (n + 2))%Z;
@@ -170,22 +176,20 @@ omega.
 apply Z.le_ge; auto.
 Qed.
 
-
-
 Lemma Zsgn_sg :
- forall (X : R) (XC YC : Reelc) (n : Z),
+ forall (X : R) (XC YC : Reelc) (msdy : option Z) (n : Z),
  encadrement XC X ->
- (0 < Z.abs (XC (p_max YC n)))%Z -> Z.sgn (XC (p_max YC n)) = sg X.
-intros X XC YC n H.
+ (0 < Z.abs (XC (p_max YC msdy n)))%Z -> Z.sgn (XC (p_max YC msdy n)) = sg X.
+intros X XC YC msdy n H.
 intro.
-pattern (XC (p_max YC n)) in |- *.
+pattern (XC (p_max YC msdy n)) in |- *.
 apply Zabs_pos_ind.
-intros; replace (Z.sgn (XC (p_max YC n))) with 1%Z;
- [ symmetry  in |- *; apply sg_pos; apply sg_Zsgn with XC (p_max YC n);
+intros; replace (Z.sgn (XC (p_max YC msdy n))) with 1%Z;
+ [ symmetry  in |- *; apply sg_pos; apply sg_Zsgn with XC (p_max YC msdy n);
     [ auto | auto ]
  | symmetry  in |- *; apply Zsgn_pos; auto ].
-intros; replace (Z.sgn (XC (p_max YC n))) with (-1)%Z;
- [ symmetry  in |- *; apply sg_neg; apply sg_Zsgn_2 with XC (p_max YC n);
+intros; replace (Z.sgn (XC (p_max YC msdy n))) with (-1)%Z;
+ [ symmetry  in |- *; apply sg_neg; apply sg_Zsgn_2 with XC (p_max YC msdy n);
     [ auto | apply Z.lt_gt; auto ]
  | symmetry  in |- *; apply Zsgn_neg; auto ].
 auto.
@@ -213,25 +217,25 @@ Qed.
 
 Hint Resolve Zsgn_sg_bis: real.
 
-
 Lemma Zsgn_to_sg :
- forall (xc yc : Reelc) (x y : R) (n : Z),
+ forall (xc yc : Reelc) (x y : R) 
+ (msdx msdy : option Z) (n : Z),
  encadrement xc x ->
  encadrement yc y ->
- (0 < Z.abs (xc (p_max yc n)))%Z ->
+ (0 < Z.abs (xc (p_max yc msdy n)))%Z ->
  IZR
-   (Z.sgn (xc (p_max yc n)) * Z.sgn (yc (p_max xc n)) *
-    gauss_z_sur_B_pow (1 + Z.abs (xc (p_max yc n) * yc (p_max xc n)))
-      (p_max yc n + p_max xc n - n)) =
+   (Z.sgn (xc (p_max yc msdy n)) * Z.sgn (yc (p_max xc msdx n)) *
+    gauss_z_sur_B_pow (1 + Z.abs (xc (p_max yc msdy n) * yc (p_max xc msdx n)))
+      (p_max yc msdy n + p_max xc msdx n - n)) =
  IZR
    (sg x * sg y *
-    gauss_z_sur_B_pow (1 + Z.abs (xc (p_max yc n) * yc (p_max xc n)))
-      (p_max yc n + p_max xc n - n)).
+    gauss_z_sur_B_pow (1 + Z.abs (xc (p_max yc msdy n) * yc (p_max xc msdx n)))
+      (p_max yc msdy n + p_max xc msdx n - n)).
 
 Proof.
 intros.
 apply IZR_trivial.
-pattern (yc (p_max xc n)).
+pattern (yc (p_max xc msdx n)).
 apply Zabs_ind_4.
 intro.
 rewrite H2; rewrite <- Zmult_0_r_reverse; rewrite Zmult_comm;
@@ -243,9 +247,9 @@ apply one_IZR_lt1.
 apply
  Rle_lt_2_lt
   with
-    (IZR 1 * / B_powerRZ (p_max yc n + p_max xc n - n) - 1 * / 2)
-    (IZR 1 * / B_powerRZ (p_max yc n + p_max xc n - n) + 1 * / 2).                       
-generalize (gauss_correct_pow 1 (p_max yc n + p_max xc n - n)).
+    (IZR 1 * / B_powerRZ (p_max yc msdy n + p_max xc msdx n - n) - 1 * / 2)
+    (IZR 1 * / B_powerRZ (p_max yc msdy n + p_max xc msdx n - n) + 1 * / 2).                       
+generalize (gauss_correct_pow 1 (p_max yc msdy n + p_max xc msdx n - n)).
 tauto.
 RingReplace (IZR 1) 1.
 rewrite Rmult_comm; rewrite Rmult_1_r.
@@ -277,8 +281,8 @@ omega.
 apply le_pmax_n. 
 field; apply Rgt_not_eq; lra.
 intro.
-replace (Z.sgn (xc (p_max yc n))) with (sg x).
-replace (Z.sgn (yc (p_max xc n))) with (sg y).
+replace (Z.sgn (xc (p_max yc msdy n))) with (sg x).
+replace (Z.sgn (yc (p_max xc msdx n))) with (sg y).
 auto.
 symmetry; apply Zsgn_sg; auto; auto.
 symmetry; apply Zsgn_sg; auto; auto.
