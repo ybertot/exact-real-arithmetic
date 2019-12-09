@@ -44,7 +44,6 @@ Proof. reflexivity. Qed.
 
 Lemma Bexpos : forall n : Z,
 B_powerRZ n > 0.
-
 Proof.
   intros n.
 unfold B_powerRZ.
@@ -53,18 +52,20 @@ apply INR_B_non_nul.
 Qed.
 
 Lemma inverse_correct :
- forall (x : R) (xc : Reelc),
- x <> 0 -> encadrement xc x -> encadrement (inverse_reelc xc) (1 * / x).   
+ forall (x : R) (xc : Reelc) (msdx : Z),
+ x <> 0 -> encadrement xc x ->
+ msd_prop xc msdx ->
+ encadrement (inverse_reelc xc msdx) (1 * / x).
 Proof.
-intros.
+intros x xc msdx H H0 msd_p.
 unfold encadrement in |- *; intro.
 unfold inverse_reelc in |- *. 
-case (Z_le_gt_dec n (- msd xc)).
+case (Z_le_gt_dec n (- msdx)).
 intros; simpl in |- *.
 RingReplace (0 - 1) (-1); RingReplace (0 + 1) 1.
 apply Rbase_doubles_inegalites.Rabsolu_def3.
 rewrite Rabs_mult.
-apply Rle_lt_trans with (Rabs (1 * / x) * Rabs (B_powerRZ (- msd xc))).
+apply Rle_lt_trans with (Rabs (1 * / x) * Rabs (B_powerRZ (- msdx))).
 apply Rmult_le_compat_l.
 apply Rabs_pos.
 unfold B_powerRZ in |- *.
@@ -76,42 +77,40 @@ apply Rsqr_incr_1;
 apply Rle_powerRZ; [ idtac | auto ].
 RingReplace 1 (INR 1); apply le_INR; generalize B_sup_4; omega.
 rewrite <- Rabs_mult.
-apply Rlt_le_trans with (1 * / (IZR (Z.abs (xc (msd xc))) - 1)).
-apply Rlt_2_to_Rlt with (1 * / (IZR (Z.abs (xc (msd xc))) + 1)).
+apply Rlt_le_trans with (1 * / (IZR (Z.abs (xc msdx)) - 1)).
+apply Rlt_2_to_Rlt with (1 * / (IZR (Z.abs (xc msdx) + 1))).
 rewrite Rmult_assoc; rewrite Rabs_mult.
 rewrite Rabs_R1.
 rewrite Rabs_mult.
 replace (Rabs (/ x)) with (/ Rabs x);
  [ idtac | symmetry  in |- *; apply Rabs_Rinv; auto ].
 unfold B_powerRZ in |- *.
-replace (Rabs (powerRZ (INR B) (- msd xc))) with (/ powerRZ (INR B) (msd xc)). 
-replace (/ Rabs x * / powerRZ (INR B) (msd xc)) with
- (/ (Rabs x * powerRZ (INR B) (msd xc))).
+replace (Rabs (powerRZ (INR B) (- msdx))) with (/ powerRZ (INR B) (msdx)). 
+replace (/ Rabs x * / powerRZ (INR B) msdx) with
+ (/ (Rabs x * powerRZ (INR B) msdx)).
 apply Rlt_2_Rinv.
-RingReplace 1 (IZR (Z.succ 0)); RingReplace 0 (IZR 0).
-rewrite <- plus_IZR; apply Rlt_gt.
-apply IZR_lt.
-apply Z.lt_trans with (Z.succ 0).
-auto with zarith.
-apply Zlt_O_minus_lt.
-RingReplace (Z.abs (xc (msd xc)) + Z.succ 0 - Z.succ 0)%Z (Z.abs (xc (msd xc))).
-apply Z.lt_trans with 1%Z; [ omega | apply msd_c_ter ].
+apply IZR_lt; lia.
+
 apply Rmult_gt_0_compat.
-apply Rlt_gt; apply Rabs_pos_lt; auto.
-apply Rlt_gt; apply powerRZ_lt; apply INR_B_non_nul.
-apply Rlt_gt; apply Rlt_sub_compatibility.
-RingReplace (0 + 1) 1.
-RingReplace 1 (IZR (Z.succ 0)); apply IZR_lt; apply msd_c_ter.
+now apply Rabs_pos_lt; auto.
+now apply powerRZ_lt; apply INR_B_non_nul.
+rewrite <- minus_IZR.
+apply IZR_lt.
+replace 0%Z with (1 - 1)%Z by ring.
+rewrite <- Z.sub_lt_mono_r.
+destruct msd_p; lia.
+
 cut (encadrement (absolue_reelc xc) (Rabs x)).
 unfold encadrement in |- *.
-intro.
-generalize (H1 (msd xc)).
+intro H1.
+generalize (H1 msdx).
 unfold absolue_reelc in |- *; unfold B_powerRZ in |- *; auto.
+rewrite plus_IZR; auto.
 apply absolue_correct; auto.
 apply Rinv_mult_distr.
 apply Rabs_no_R0; auto.
 apply powerRZ_INR_B_non_nul.
-transitivity (powerRZ (INR B) (- msd xc)).
+transitivity (powerRZ (INR B) (- msdx)).
 apply Rinv_powerRZ.
 apply Rgt_not_eq; apply Rlt_gt; apply INR_B_non_nul.
 symmetry  in |- *; apply Rabs_pos_eq.
@@ -119,38 +118,39 @@ apply Rlt_le; apply powerRZ_lt; apply INR_B_non_nul.
 rewrite Rmult_comm; apply Rle_Rinv_monotony.
 apply Rlt_sub_compatibility.
 RingReplace (0 + 1) 1.
-RingReplace 1 (IZR (Z.succ 0)); apply IZR_lt; apply msd_c_ter.
+RingReplace 1 (IZR (Z.succ 0)); apply IZR_lt.
+destruct msd_p as [_ p']; apply Z.gt_lt; exact p'.
 rewrite RIneq.Rmult_1_r.
 apply Rle_add_compatibility.
 RingReplace (1+1) (IZR (Z.succ (Z.succ 0))); apply IZR_le.
-apply Zlt_le_succ; apply msd_c_ter.
+apply Zlt_le_succ; apply Z.gt_lt; destruct msd_p as [_ p']; exact p'.
 
 intro.
-cut (Z.abs (xc (n + 2 * msd xc + 1)) > 1)%Z.
+cut (Z.abs (xc (n + 2 * msdx + 1)) > 1)%Z.
 intros.
 cut
  (encadrement_bis
-    (Zdiv_sup (B_powerZ (2 * n + 2 * msd xc + 1))
-       (Z.abs (xc (n + 2 * msd xc + 1)%Z))) n (/ Rabs x)).
+    (Zdiv_sup (B_powerZ (2 * n + 2 * msdx + 1))
+       (Z.abs (xc (n + 2 * msdx + 1)%Z))) n (/ Rabs x)).
 intros.
-case (Z_gt_le_dec (xc (n + 2 * msd xc + 1)%Z) 1); intros.
+case (Z_gt_le_dec (xc (n + 2 * msdx + 1)%Z) 1); intros.
 cut
  (encadrement_bis
-    (Zdiv_sup (B_powerZ (2 * n + 2 * msd xc + 1)) (xc (n + 2 * msd xc + 1)%Z))
+    (Zdiv_sup (B_powerZ (2 * n + 2 * msdx + 1)) (xc (n + 2 * msdx + 1)%Z))
     n (1 * / x)); auto. 
-replace (xc (n + 2 * msd xc + 1)%Z) with (Z.abs (xc (n + 2 * msd xc + 1)%Z)).
+replace (xc (n + 2 * msdx + 1)%Z) with (Z.abs (xc (n + 2 * msdx + 1)%Z)).
 replace
- (Zdiv_sup (B_powerZ (2 * n + 2 * msd xc + 1))
-    (Z.abs (xc (n + 2 * msd xc + 1)%Z))) with
+ (Zdiv_sup (B_powerZ (2 * n + 2 * msdx + 1))
+    (Z.abs (xc (n + 2 * msdx + 1)%Z))) with
  (sg x *
-  Zdiv_sup (B_powerZ (2 * n + 2 * msd xc + 1))
-    (Z.abs (xc (n + 2 * msd xc + 1))))%Z.
+  Zdiv_sup (B_powerZ (2 * n + 2 * msdx + 1))
+    (Z.abs (xc (n + 2 * msdx + 1))))%Z.
 rewrite Rmult_1l.
 apply encadrement_bis_prop2; auto.
 unfold Zdiv_sup in |- *.
 case
  (Z_zerop
-    (B_powerZ (2 * n + 2 * msd xc + 1) mod Z.abs (xc (n + 2 * msd xc + 1)%Z)));
+    (B_powerZ (2 * n + 2 * msdx + 1) mod Z.abs (xc (n + 2 * msdx + 1)%Z)));
  intro.
 apply Z.ge_le.
 apply Z_div_ge0.
@@ -184,7 +184,7 @@ apply INR_B_non_nul.
 replace (sg x) with 1%Z.
 ring.
 symmetry  in |- *; apply sg_pos.
-apply sg_Zsgn with xc (n + 2 * msd xc + 1)%Z.
+apply sg_Zsgn with xc (n + 2 * msdx + 1)%Z.
 auto.
 apply Z.lt_trans with 1%Z.
 omega.
@@ -195,16 +195,16 @@ apply Z.lt_trans with 1%Z.
 omega.
 auto with zarith.
 
-replace (B_powerZ (2 * n + 2 * msd xc + 1) / xc (n + 2 * msd xc + 1))%Z with
+replace (B_powerZ (2 * n + 2 * msdx + 1) / xc (n + 2 * msdx + 1))%Z with
  (sg x *
-  Zdiv_sup (B_powerZ (2 * n + 2 * msd xc + 1))
-    (Z.abs (xc (n + 2 * msd xc + 1))))%Z.
+  Zdiv_sup (B_powerZ (2 * n + 2 * msdx + 1))
+    (Z.abs (xc (n + 2 * msdx + 1))))%Z.
 rewrite Rmult_1l.
 apply encadrement_bis_prop2; auto.
 unfold Zdiv_sup in |- *.
 case
  (Z_zerop
-    (B_powerZ (2 * n + 2 * msd xc + 1) mod Z.abs (xc (n + 2 * msd xc + 1)%Z)));
+    (B_powerZ (2 * n + 2 * msdx + 1) mod Z.abs (xc (n + 2 * msdx + 1)%Z)));
  intro.
 apply Z.ge_le.
 apply Z_div_ge0.
@@ -233,7 +233,7 @@ rewrite <- INR_IZR_INZ.
 apply INR_B_non_nul.
 unfold B_powerZ in |- *.
 
-replace (sg x) with (Z.sgn (xc (n + 2 * msd xc + 1)%Z)).
+replace (sg x) with (Z.sgn (xc (n + 2 * msdx + 1)%Z)).
 apply Zdiv_sup_opp.
 apply Zabs_01 with 1%Z.
 omega.
@@ -250,28 +250,28 @@ auto with zarith.
 
 cut
  (IZR
-    (Z_of_nat B ^ (Z.succ (Z.succ 0) * n + Z.succ (Z.succ 0) * msd xc + Z.succ 0) /
-     (Z.abs (xc (n + Z.succ (Z.succ 0) * msd xc + Z.succ 0)%Z) + Z.succ 0)) <
+    (Z_of_nat B ^ (Z.succ (Z.succ 0) * n + Z.succ (Z.succ 0) * msdx + Z.succ 0) /
+     (Z.abs (xc (n + Z.succ (Z.succ 0) * msdx + Z.succ 0)%Z) + Z.succ 0)) <
   / Rabs x * B_powerRZ n <
   IZR
     (Zdiv_sup
-       (B_powerZ (Z.succ (Z.succ 0) * n + Z.succ (Z.succ 0) * msd xc + Z.succ 0))
-       (Z.abs (xc (n + Z.succ (Z.succ 0) * msd xc + Z.succ 0)%Z) - Z.succ 0))).
+       (B_powerZ (Z.succ (Z.succ 0) * n + Z.succ (Z.succ 0) * msdx + Z.succ 0))
+       (Z.abs (xc (n + Z.succ (Z.succ 0) * msdx + Z.succ 0)%Z) - Z.succ 0))).
 set
  (alpha :=
-  (Z_of_nat B ^ (Z.succ (Z.succ 0) * n + Z.succ (Z.succ 0) * msd xc + Z.succ 0) /
-   (Z.abs (xc (n + Z.succ (Z.succ 0) * msd xc + Z.succ 0)) + Z.succ 0))%Z) 
+  (Z_of_nat B ^ (Z.succ (Z.succ 0) * n + Z.succ (Z.succ 0) * msdx + Z.succ 0) /
+   (Z.abs (xc (n + Z.succ (Z.succ 0) * msdx + Z.succ 0)) + Z.succ 0))%Z) 
  in *.
 set
  (beta :=
   Zdiv_sup
-    (B_powerZ (Z.succ (Z.succ 0) * n + Z.succ (Z.succ 0) * msd xc + Z.succ 0))
-    (Z.abs (xc (n + Z.succ (Z.succ 0) * msd xc + Z.succ 0)%Z) - Z.succ 0)) 
+    (B_powerZ (Z.succ (Z.succ 0) * n + Z.succ (Z.succ 0) * msdx + Z.succ 0))
+    (Z.abs (xc (n + Z.succ (Z.succ 0) * msdx + Z.succ 0)%Z) - Z.succ 0)) 
  in *.
 set
  (lambda :=
-  Zdiv_sup (B_powerZ (2 * n + 2 * msd xc + 1))
-    (Z.abs (xc (n + 2 * msd xc + 1)%Z))) in *.
+  Zdiv_sup (B_powerZ (2 * n + 2 * msdx + 1))
+    (Z.abs (xc (n + 2 * msdx + 1)%Z))) in *.
 intro.
 cut (1 <= beta - alpha <= 2)%Z. 
 intro.
@@ -329,7 +329,7 @@ unfold alpha, lambda in |- *.
 unfold Zdiv_sup in |- *.
 case
  (Z_zerop
-    (B_powerZ (2 * n + 2 * msd xc + 1) mod Z.abs (xc (n + 2 * msd xc + 1)%Z)));
+    (B_powerZ (2 * n + 2 * msdx + 1) mod Z.abs (xc (n + 2 * msdx + 1)%Z)));
  unfold B_powerZ in |- *; intros.
 unfold Z.div in |- *.
 Abort.
