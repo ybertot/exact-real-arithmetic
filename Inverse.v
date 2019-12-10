@@ -673,8 +673,8 @@ x <> 0 -> encadrement xc x -> encadrement (inverse_reelc xc msdx) (1 * / x).
 
 Proof.
 intros x xc msdx msd_p H.
-unfold encadrement in |- *; intro.
-unfold inverse_reelc in |- *.
+unfold encadrement in |- *; intros H0 n.
+unfold inverse_reelc.
 case (Z_le_gt_dec n (- msdx)).
 intros; simpl in |- *.
 RingReplace (0 - 1) (-1); RingReplace (0 + 1) 1.
@@ -704,20 +704,19 @@ replace (Rabs (powerRZ (INR B) (- msdx))) with (/ powerRZ (INR B) msdx).
 replace (/ Rabs x * / powerRZ (INR B) msdx) with
  (/ (Rabs x * powerRZ (INR B) msdx)).
 apply Rlt_2_Rinv.
-RingReplace 1 (IZR (Z.succ 0)); RingReplace 0 (IZR 0).
 rewrite <- plus_IZR; apply Rlt_gt.
 apply IZR_lt.
-apply Z.lt_trans with (Z.succ 0).
+apply Z.lt_trans with 1%Z.
 auto with zarith.
 apply Zlt_O_minus_lt.
-RingReplace (Z.abs (xc msdx) + Z.succ 0 - Z.succ 0)%Z (Z.abs (xc msdx)).
-apply Z.lt_trans with 1%Z; [ omega | apply msd_c_ter ].
+rewrite Z.add_simpl_r.
+now apply Z.lt_trans with 1%Z; [ omega | apply msd_c_ter ].
 apply Rmult_gt_0_compat.
 apply Rlt_gt; apply Rabs_pos_lt; auto.
 apply Rlt_gt; apply powerRZ_lt; apply INR_B_non_nul.
 apply Rlt_gt; apply Rlt_sub_compatibility.
 RingReplace (0 + 1) 1.
-RingReplace 1 (IZR (Z.succ 0)); apply IZR_lt; apply msd_c_ter.
+now apply IZR_lt; apply msd_c_ter.
 cut (encadrement (absolue_reelc xc) (Rabs x)).
 unfold encadrement in |- *.
 intro.
@@ -735,11 +734,11 @@ apply Rlt_le; apply powerRZ_lt; apply INR_B_non_nul.
 rewrite Rmult_comm; apply Rle_Rinv_monotony.
 apply Rlt_sub_compatibility.
 RingReplace (0 + 1) 1.
-RingReplace 1 (IZR (Z.succ 0)); apply IZR_lt; apply msd_c_ter.
+now apply IZR_lt; apply msd_c_ter.
 rewrite RIneq.Rmult_1_r.
 apply Rle_add_compatibility.
-RingReplace (1+1) (IZR (Z.succ (Z.succ 0))); apply IZR_le.
-apply Zlt_le_succ; apply msd_c_ter.
+rewrite <- plus_IZR; apply IZR_le.
+now apply (Zlt_le_succ 1); apply msd_c_ter.
 
 
  intro.
@@ -753,7 +752,7 @@ apply Zlt_le_succ; apply msd_c_ter.
 assert (Hk: (n + 2*msdx +1 > msdx +1)%Z).
 omega.
 assert (Habs:(Z.abs (xc (n + 2 * msdx + 1)) > 1)%Z).
-assert (n+2*msdx +1>=msd (xc))%Z.
+assert (n+2*msdx +1>=msdx)%Z.
 omega.
 
 assert (encadrement : (B_powerZ ((n + 2 * msdx + 1) - msdx) <= (Z.abs (xc (n + 2 * msdx + 1))) <=
@@ -767,7 +766,7 @@ apply Rgt_trans with (IZR (n + 2 * msdx + 1 )). apply inversegtR.
 apply IZR_lt. omega. apply inversegtR. apply IZR_lt.
 apply inverseltZ.
 
- assumption. assumption.
+ assumption. assumption. assumption.
 
 inversion encadrement.
 
@@ -817,14 +816,14 @@ apply inverseleR. apply Bge4. omega.
 
 set
 (alpha :=
-(Z_of_nat B ^ (Z.succ (Z.succ 0) * n + Z.succ (Z.succ 0) * msdx + Z.succ 0) /
-(Z.abs (xc (n + Z.succ (Z.succ 0) * msdx + Z.succ 0)) + Z.succ 0))%Z)
+(Z_of_nat B ^ (2 * n + 2 * msdx + 1) /
+(Z.abs (xc (n + 2 * msdx + 1)) + 1))%Z)
 in *.
 set
 (beta :=
 Zdiv_sup
-(B_powerZ (Z.succ (Z.succ 0) * n + Z.succ (Z.succ 0) * msdx + Z.succ 0))
-(Z.abs (xc (n + Z.succ (Z.succ 0) * msdx + Z.succ 0)%Z) - Z.succ 0))
+(B_powerZ (2 * n + 2 * msdx + 1))
+(Z.abs (xc (n + 2 * msdx + 1)%Z) - 1))
 in *.
 
 
@@ -1132,7 +1131,8 @@ assert (H22 : (B_powerZ ((n + 2 * msdx + 1) - msdx) <= (Z.abs (xc (n + 2 * msdx 
 (2*(Z_of_nat B)+1)*(B_powerZ ((n + 2 * msdx + 1)-msdx)))%Z).
 
 
-{ apply msd_d with x. assumption. apply trivial26. assumption. assumption. } inversion H22.
+{ apply msd_d with x. assumption. apply trivial26. assumption. assumption.
+  assumption. } inversion H22.
 
 
 assert (H23 : 1 * / B_powerRZ (n + 2 * msdx + 1 - msdx) >= 
@@ -1489,22 +1489,22 @@ assert (H49 :0 < B_powerRZ (2 * n + 2 * msdx + 1) * / IZR (Z.abs (xc (n + 2 * ms
 
 
 
-assert (H50 : IZR(Zdiv_sup (B_powerZ (Z.succ (Z.succ 0) * n + Z.succ (Z.succ 0) * msdx + Z.succ 0))
-(Z.abs (xc (n + Z.succ (Z.succ 0) * msdx + Z.succ 0)%Z) - Z.succ 0)) < 
-  IZR (B_powerZ (Z.succ (Z.succ 0) * n + Z.succ (Z.succ 0) * msdx + Z.succ 0)) * /
-IZR (Z.abs (xc (n + Z.succ (Z.succ 0) * msdx + Z.succ 0)%Z) - Z.succ 0) + 1).
-apply Zdiv_supgt. replace (Z.succ 0) with (1%Z). apply inversegtZ.
+assert (H50 : IZR(Zdiv_sup (B_powerZ (2 * n + 2 * msdx + 1))
+(Z.abs (xc (n + 2 * msdx + 1)%Z) - 1)) < 
+  IZR (B_powerZ (2 * n + 2 * msdx + 1)) * /
+IZR (Z.abs (xc (n + 2 * msdx + 1)%Z) - 1) + 1).
+apply Zdiv_supgt. apply inversegtZ.
 apply lt_IZR.
 replace (0) with (1 + (-1)). 
-replace (IZR (Z.abs (xc (n + Z.succ 1 * msdx + 1)%Z) - 1)) with
-(IZR (Z.abs (xc (n + Z.succ 1 * msdx + 1)%Z)) + (- 1)). apply Rplus_lt_compat_r.
+replace (IZR (Z.abs (xc (n + 2 * msdx + 1)%Z) - 1)) with
+(IZR (Z.abs (xc (n + 2 * msdx + 1)%Z)) + (- 1)). 
+apply Rplus_lt_compat_r.
 apply IZR_lt. apply inverseltZ. assumption. 
-rewrite minus_IZR. ring. ring. ring.
+rewrite minus_IZR. ring. ring.
 
-
-replace (IZR (B_powerZ (Z.succ (Z.succ 0) * n + Z.succ (Z.succ 0) * msdx + Z.succ 0))) with
+replace (IZR (B_powerZ (2 * n + 2 * msdx + 1))) with
 (B_powerRZ (2 * n + 2 * msdx + 1)) in H50.
-{ replace (IZR (Z.abs (xc (n + Z.succ (Z.succ 0) * msdx + Z.succ 0)%Z) - Z.succ 0)) with
+{ replace (IZR (Z.abs (xc (n + 2 * msdx + 1)%Z) - 1)) with
 (IZR (Z.abs (xc (n + 2 * msdx + 1)%Z) - 1)) in H50.
 
 
@@ -1515,21 +1515,21 @@ IZR (Z.abs (xc (n + 2 * msdx + 1)%Z) - 1) + 1).
 { assumption. }
 
 
-assert (H52 : IZR (Z_of_nat B ^ (Z.succ (Z.succ 0) * n + Z.succ (Z.succ 0) * msdx + Z.succ 0) /
-(Z.abs (xc (n + Z.succ (Z.succ 0) * msdx + Z.succ 0)) + Z.succ 0))%Z > 
-IZR (Z_of_nat B ^ (Z.succ (Z.succ 0) * n + Z.succ (Z.succ 0) * msdx + Z.succ 0)) * /
-IZR  ((Z.abs (xc (n + Z.succ (Z.succ 0) * msdx + Z.succ 0)%Z) + Z.succ 0)) - 1).
+assert (H52 : IZR (Z_of_nat B ^ (2 * n + 2 * msdx + 1) /
+(Z.abs (xc (n + 2 * msdx + 1)) + 1))%Z > 
+IZR (Z_of_nat B ^ (2 * n + 2 * msdx + 1)) * /
+IZR  ((Z.abs (xc (n + 2 * msdx + 1)%Z) + 1)) - 1).
 
-apply Zdiv_inflt. replace (Z.succ 0) with (1%Z).
+apply Zdiv_inflt.
 apply inversegtZ. apply lt_IZR. apply inverseltR. apply trivial28.
 replace (1) with (0 + 1). rewrite plus_IZR.
 apply Rplus_gt_compat_r. apply trivial28. apply inversegtR. apply IZR_lt.
-apply inverseltZ. assumption. ring. ring.
+apply inverseltZ. assumption. ring.
 
-replace (IZR (Z.of_nat B ^ (Z.succ (Z.succ 0) * n + Z.succ (Z.succ 0) * msdx + Z.succ 0))) with
+replace (IZR (Z.of_nat B ^ (2 * n + 2 * msdx + 1))) with
 (B_powerRZ (2 * n + 2 * msdx + 1)) in H52.
 
-{ replace (IZR (Z.abs (xc (n + Z.succ (Z.succ 0) * msdx + Z.succ 0)%Z) + Z.succ 0)) with
+{ replace (IZR (Z.abs (xc (n + 2 * msdx + 1)%Z) + 1)) with
 (IZR (Z.abs (xc (n + 2 * msdx + 1)%Z) + 1)) in H52.
 
 { 
@@ -1583,38 +1583,35 @@ split.
 
 { apply inverseltZ. apply gt_IZR. rewrite soustractionIZR.
  apply soustractioninegalite. apply inversegtR. apply IZR_lt. apply inverseltZ. 
- apply ZdivsupgtZdiv.  replace (Z.succ 0) with (1%Z).
+ apply ZdivsupgtZdiv.
 replace (0%Z) with ((1 + (-1))%Z).
-replace ((Z.abs (xc (n + Z.succ 1 * msdx + 1)) - 1)%Z) with
-((Z.abs (xc (n + Z.succ 1 * msdx + 1)) + (- 1))%Z). apply inversegtZ.
+replace ((Z.abs (xc (n + 2 * msdx + 1)) - 1)%Z) with
+((Z.abs (xc (n + 2 * msdx + 1)) + (- 1))%Z). apply inversegtZ.
 apply lt_IZR. rewrite plus_IZR. rewrite plus_IZR.
 apply Rplus_lt_compat_r. apply IZR_lt. apply inverseltZ. assumption.
-ring. ring. ring.
-replace (Z.succ 0) with (1%Z).
+ring. ring.
 apply inversegtZ. apply lt_IZR. apply inverseltR. apply trivial28.
 replace (1) with (0 + 1). rewrite plus_IZR. apply Rplus_gt_compat_r.
 apply trivial28. apply inversegtR. apply IZR_lt. apply inverseltZ. assumption.
-ring. ring. 
+ring. 
 
 
 
-replace (IZR (B_powerZ (Z.succ (Z.succ 0) * n + Z.succ (Z.succ 0) * msdx + Z.succ 0))) with
+replace (IZR (B_powerZ (2 * n + 2 * msdx + 1))) with
 (B_powerRZ (2 * n + 2 * msdx + 1)).
 
-{ replace (IZR (Z.of_nat B ^ (Z.succ (Z.succ 0) * n + Z.succ (Z.succ 0) * msdx + Z.succ 0))) with
+{ replace (IZR (Z.of_nat B ^ (2 * n + 2 * msdx + 1))) with
 (B_powerRZ (2 * n + 2 * msdx + 1)).
 
-{ replace (IZR (Z.abs (xc (n + Z.succ (Z.succ 0) * msdx + Z.succ 0)%Z) - Z.succ 0)) with
+{ replace (IZR (Z.abs (xc (n + 2 * msdx + 1)%Z) - 1)) with
 (IZR (Z.abs (xc (n + 2 * msdx + 1)%Z) - 1)).
 
-{ replace (IZR (Z.abs (xc (n + Z.succ (Z.succ 0) * msdx + Z.succ 0)%Z) + Z.succ 0)) with
+{ replace (IZR (Z.abs (xc (n + 2 * msdx + 1)%Z) + 1)) with
 (IZR (Z.abs (xc (n + 2 * msdx + 1)%Z) + 1)).
 
 { apply additionlt. assumption. } trivial. } trivial. }
 apply B_powerRZandZofnat. 
 
-replace (Z.succ (Z.succ 0)) with (2%Z).
-replace (Z.succ 0) with (1%Z).
 apply inversegeZ. apply le_IZR.
 rewrite plus_IZR. apply Rle_trans with (IZR (2 * n + 2 * msdx)).
 rewrite plus_IZR. replace (0) with (IZR (-2 * msdx) + IZR (2 * msdx)).
@@ -1626,11 +1623,9 @@ apply IZR_lt. apply inverseltZ. assumption.
 rewrite <- plus_IZR. apply IZR_trivial. ring.
 rewrite <- plus_IZR. apply IZR_trivial. ring.
 rewrite <- plus_IZR. apply IZR_trivial. ring. lra.
-ring. ring.
+ }
 
- }  unfold B_powerZ. apply B_powerRZandZofnat. 
-replace (Z.succ (Z.succ 0)) with (2%Z).
-replace (Z.succ 0) with (1%Z).
+unfold B_powerZ. apply B_powerRZandZofnat. 
 apply inversegeZ. apply le_IZR.
 rewrite plus_IZR. apply Rle_trans with (IZR (2 * n + 2 * msdx)).
 rewrite plus_IZR. replace (0) with (IZR (-2 * msdx) + IZR (2 * msdx)).
@@ -1642,11 +1637,9 @@ apply IZR_lt. apply inverseltZ. assumption.
 rewrite <- plus_IZR. apply IZR_trivial. ring.
 rewrite <- plus_IZR. apply IZR_trivial. ring.
 rewrite <- plus_IZR. apply IZR_trivial. ring. lra.
-ring. ring. } 
+}
 apply lt_IZR. rewrite soustractionIZR. assumption. }
 ring. } trivial. } apply B_powerRZandZofnat. 
-replace (Z.succ (Z.succ 0)) with (2%Z).
-replace (Z.succ 0) with (1%Z).
 apply inversegeZ. apply le_IZR.
 rewrite plus_IZR. apply Rle_trans with (IZR (2 * n + 2 * msdx)).
 rewrite plus_IZR. replace (0) with (IZR (-2 * msdx) + IZR (2 * msdx)).
@@ -1658,10 +1651,8 @@ apply IZR_lt. apply inverseltZ. assumption.
 rewrite <- plus_IZR. apply IZR_trivial. ring.
 rewrite <- plus_IZR. apply IZR_trivial. ring.
 rewrite <- plus_IZR. apply IZR_trivial. ring. lra.
-ring. ring. } trivial. }
+} trivial. }
 apply B_powerRZandZofnat. 
-replace (Z.succ (Z.succ 0)) with (2%Z).
-replace (Z.succ 0) with (1%Z).
 apply inversegeZ. apply le_IZR.
 rewrite plus_IZR. apply Rle_trans with (IZR (2 * n + 2 * msdx)).
 rewrite plus_IZR. replace (0) with (IZR (-2 * msdx) + IZR (2 * msdx)).
@@ -1673,7 +1664,7 @@ apply IZR_lt. apply inverseltZ. assumption.
 rewrite <- plus_IZR. apply IZR_trivial. ring.
 rewrite <- plus_IZR. apply IZR_trivial. ring.
 rewrite <- plus_IZR. apply IZR_trivial. ring. lra.
-ring. ring. } 
+} 
 
 apply divisionR3.
 
@@ -1703,8 +1694,8 @@ apply ArithZ3. trivial. assumption. -
 set
 (lambda :=
 
-(B_powerZ (Z.succ (Z.succ 0) * n + Z.succ (Z.succ 0) * msdx + Z.succ 0) /
-           (xc (n + Z.succ (Z.succ 0) * msdx + Z.succ 0) + 1) + 1)%Z).
+(B_powerZ (2 * n + 2 * msdx + 1) /
+           (xc (n + 2 * msdx + 1) + 1) + 1)%Z).
 
 assert (H66 : encadrement (absolue_reelc xc) (Rabs x)).
 { apply absolue_correct. assumption. } 
@@ -1805,24 +1796,23 @@ replace (B_powerRZ (n + (n + 2 * msdx + 1))) with (B_powerRZ (2*n + 2 * msdx + 1
 
 
 assert (H9 : B_powerRZ (2 * n + 2 * msdx + 1) * / (IZR (absolue_reelc xc (n + 2 * msdx + 1)%Z) - 1) <=
-IZR (Zdiv_sup (B_powerZ (Z.succ (Z.succ 0) * n + Z.succ (Z.succ 0) * msdx + Z.succ 0))
-          (Z.abs (xc (n + Z.succ (Z.succ 0) * msdx + Z.succ 0)%Z) - Z.succ 0))).
+IZR (Zdiv_sup (B_powerZ (2 * n + 2 * msdx + 1))
+          (Z.abs (xc (n + 2 * msdx + 1)%Z) - 1))).
 
 { apply inverseleR. 
 
 replace (B_powerRZ (2 * n + 2 * msdx + 1)) with (IZR (B_powerZ (2 * n + 2 * msdx + 1))).
 
 { replace ((IZR (absolue_reelc xc (n + 2 * msdx + 1)%Z) - 1)) with
-(IZR (Z.abs (xc (n + Z.succ (Z.succ 0) * msdx + Z.succ 0)%Z) - Z.succ 0)).
+(IZR (Z.abs (xc (n + 2 * msdx + 1)%Z) - 1)).
 
 apply zdivsupge. 
 
-replace (Z.succ 0) with (1%Z).
 apply inversegtZ. apply lt_IZR. rewrite minus_IZR. 
-replace (IZR (Z.abs (xc (n + Z.succ 1 * msdx + 1)%Z)) - 1) with
-(IZR (Z.abs (xc (n + Z.succ 1 * msdx + 1)%Z)) + (- 1)).
+replace (IZR (Z.abs (xc (n + 2 * msdx + 1)%Z)) - 1) with
+(IZR (Z.abs (xc (n + 2 * msdx + 1)%Z)) + (- 1)).
 replace (0) with (1 + (-1)). apply Rplus_lt_compat_r. apply IZR_lt.
-apply inverseltZ. assumption. ring. ring. ring.
+apply inverseltZ. assumption. ring. ring.
 
 unfold absolue_reelc. rewrite <- trivial22. reflexivity. }
 
@@ -1846,19 +1836,17 @@ assert (H10 : B_powerRZ n * / Rabs x < IZR beta).
 (B_powerRZ (2 * n + 2 * msdx + 1) * / (IZR (absolue_reelc xc (n + 2 * msdx + 1)%Z) - 1)). assumption.
 assumption. } clear H9.
 
-assert (H11 : IZR ((Z.of_nat B ^ (Z.succ (Z.succ 0) * n + Z.succ (Z.succ 0) * msdx + Z.succ 0) /
-          (Z.abs (xc (n + Z.succ (Z.succ 0) * msdx + Z.succ 0)) + Z.succ 0))%Z) <=
+assert (H11 : IZR ((Z.of_nat B ^ (2 * n + 2 * msdx + 1) /
+          (Z.abs (xc (n + 2 * msdx + 1)) + 1))%Z) <=
  B_powerRZ (2 * n + 2 * msdx + 1) * / (IZR (absolue_reelc xc (n + 2 * msdx + 1)%Z) + 1)).
 
 { rewrite <- inverseB_power. unfold absolue_reelc.
 
 replace ((IZR (Z.abs (xc (n + 2 * msdx + 1)%Z)) + 1)) with
-(IZR ((Z.abs (xc (n + Z.succ (Z.succ 0) * msdx + Z.succ 0)%Z) + Z.succ 0))).
+(IZR ((Z.abs (xc (n + 2 * msdx + 1)%Z) + 1))).
 {
 
 apply partieentièreinférieure.
-
-replace (Z.succ 0) with (1%Z).
 
 { apply inversegtZ. apply lt_IZR. rewrite plus_IZR.
 
@@ -1869,7 +1857,7 @@ replace (0) with (-1 + 1).
 apply inverseltR. apply Rgt_trans with (0).
 
  apply trivial28. apply inversegtR. apply IZR_lt.
-apply inverseltZ. assumption. lra. } ring. } ring. }
+apply inverseltZ. assumption. lra. } ring. } }
 rewrite plus_IZR. reflexivity. 
 apply inversegeZ. apply le_IZR.
 rewrite plus_IZR. apply Rle_trans with (IZR (2 * n + 2 * msdx)).
@@ -1946,29 +1934,28 @@ encadrementalphaplus1.
 replace (IZR lambda) with (IZR alpha + 1). rewrite plus_IZR in encadrementalphaplus1.
 assumption.
 
-replace (IZR alpha) with (IZR (Z.of_nat B ^ (Z.succ (Z.succ 0) * n + Z.succ (Z.succ 0) * msdx + Z.succ 0) /
-          (Z.abs (xc (n + Z.succ (Z.succ 0) * msdx + Z.succ 0)) + Z.succ 0))%Z).
+replace (IZR alpha) with (IZR (Z.of_nat B ^ (2 * n + 2 * msdx + 1) /
+          (Z.abs (xc (n + 2 * msdx + 1)) + 1))%Z).
 
-replace (IZR lambda) with (IZR (B_powerZ (Z.succ (Z.succ 0) * n + Z.succ (Z.succ 0) * msdx + Z.succ 0) /
-           (xc (n + Z.succ (Z.succ 0) * msdx + Z.succ 0) + 1) + 1)%Z).
+replace (IZR lambda) with (IZR (B_powerZ (2 * n + 2 * msdx + 1) /
+           (xc (n + 2 * msdx + 1) + 1) + 1)%Z).
 
 rewrite plus_IZR. apply Rplus_eq_compat_r.
 
-replace (Z.succ 0) with (1%Z). unfold B_powerZ.
+unfold B_powerZ.
 
-replace ((Z.abs (xc (n + Z.succ 1 * msdx + 1)%Z) + 1)%Z) with 
-((xc (n + Z.succ 1 * msdx + 1)%Z + 1)%Z).
+replace ((Z.abs (xc (n + 2 * msdx + 1)%Z) + 1)%Z) with 
+((xc (n + 2 * msdx + 1)%Z + 1)%Z).
 
  reflexivity.  rewrite Zabssgn.
 
-assert ((Z.sgn (xc (n + Z.succ 1 * msdx + 1)) = sg x)%Z).
+assert ((Z.sgn (xc (n + 2 * msdx + 1)) = sg x)%Z).
  apply Zsgn_sg_bis. assumption. apply lt_IZR. apply inverseltR. apply trivial28.
 apply inversegtR. apply IZR_lt. apply inverseltZ. assumption.
 rewrite H2. rewrite sg_pos. ring. assumption.
 
- ring. 
-trivial. trivial. replace (Z.succ 0) with (1%Z).
-rewrite <- produitIZR. ring. ring. 
+trivial. trivial.
+rewrite <- produitIZR. ring. 
 apply inversegtR. replace (1 * / x) with (/ x). apply Rinv_0_lt_compat. 
 apply inverseltR. assumption. ring.
 
@@ -1989,20 +1976,20 @@ replace (IZR lambda + 1) with (IZR lambda - 1 + 2).
 
 replace (IZR lambda - 1) with (- IZR beta). assumption.
 
-replace (IZR beta) with (IZR (Zdiv_sup (B_powerZ (Z.succ (Z.succ 0) * n + Z.succ (Z.succ 0) * msdx + Z.succ 0))
-          (Z.abs (xc (n + Z.succ (Z.succ 0) * msdx + Z.succ 0)%Z) - Z.succ 0))).
+replace (IZR beta) with (IZR (Zdiv_sup (B_powerZ (2 * n + 2 * msdx + 1))
+          (Z.abs (xc (n + 2 * msdx + 1)%Z) - 1))).
 
-replace (IZR lambda) with (IZR (B_powerZ (Z.succ (Z.succ 0) * n + Z.succ (Z.succ 0) * msdx + Z.succ 0) /
-           (xc (n + Z.succ (Z.succ 0) * msdx + Z.succ 0) + 1) + 1)%Z).
+replace (IZR lambda) with (IZR (B_powerZ (2 * n + 2 * msdx + 1) /
+           (xc (n + 2 * msdx + 1) + 1) + 1)%Z).
 
 rewrite plus_IZR.
 
 replace (IZR
-  (B_powerZ (Z.succ (Z.succ 0) * n + Z.succ (Z.succ 0) * msdx + Z.succ 0) /
-   (xc (n + Z.succ (Z.succ 0) * msdx + Z.succ 0)%Z + 1)) + 1 - 1) with
+  (B_powerZ (2 * n + 2 * msdx + 1) /
+   (xc (n + 2 * msdx + 1)%Z + 1)) + 1 - 1) with
 (IZR
-  (B_powerZ (Z.succ (Z.succ 0) * n + Z.succ (Z.succ 0) * msdx + Z.succ 0) /
-   (xc (n + Z.succ (Z.succ 0) * msdx + Z.succ 0)%Z + 1))).
+  (B_powerZ (2 * n + 2 * msdx + 1) /
+   (xc (n + 2 * msdx + 1)%Z + 1))).
 
 
 assert (sgnx : (Z.sgn (xc(n + 2 * msdx + 1) ) = sg x)%Z).
@@ -2010,8 +1997,8 @@ apply Zsgn_sg_bis. assumption.
 apply lt_IZR. apply inverseltR. apply trivial28. apply inversegtR.
 apply IZR_lt. apply inverseltZ. assumption.
 
-assert (absxk : (Z.abs (xc (n + Z.succ (Z.succ 0) * msdx + Z.succ 0)%Z) - 1%Z =
-Z.abs (xc (n + Z.succ (Z.succ 0) * msdx + Z.succ 0)%Z + 1))%Z ).
+assert (absxk : (Z.abs (xc (n + 2 * msdx + 1)%Z) - 1%Z =
+Z.abs (xc (n + 2 * msdx + 1)%Z + 1))%Z ).
 
 rewrite Zabssgn. rewrite Zabssgn.
 
@@ -2034,38 +2021,33 @@ replace ((0 - xc (n + 2 * msdx + 1) * -1)%Z) with ((xc (n + 2 * msdx + 1))%Z) in
 
 replace ((0 - 1)%Z) with ((-1)%Z) in Habs.
 
-replace (Z.succ 0) with (1%Z).
-
 apply lt_IZR. replace (0) with (-1 + 1).
 
-replace (IZR (xc (n + Z.succ 1 * msdx + 1)%Z + 1)) with
- (IZR (xc (n + Z.succ 1 * msdx + 1)%Z + 1) - 1 + 1). rewrite <- minus_IZR.
+replace (IZR (xc (n + 2 * msdx + 1)%Z + 1)) with
+ (IZR (xc (n + 2 * msdx + 1)%Z + 1) - 1 + 1). rewrite <- minus_IZR.
 
 apply Rplus_lt_compat_r.
 
-replace (IZR (xc (n + Z.succ 1 * msdx + 1)%Z + 1 - 1)) with
- (IZR (xc (n + Z.succ 1 * msdx + 1)%Z)).
+replace (IZR (xc (n + 2 * msdx + 1)%Z + 1 - 1)) with
+ (IZR (xc (n + 2 * msdx + 1)%Z)).
 
 apply IZR_lt. assumption. apply IZR_trivial. ring.
-ring. ring. ring. ring. ring. ring. ring. assumption.
+ring. ring. ring. ring. ring. ring. assumption.
 
 rewrite sg_neg in sgnx.
 
 
 apply Z.sgn_neg_iff. assumption. assumption.
 
-replace (Z.succ 0) with (1%Z).
-replace (Z.succ 0) with (1%Z) in absxk.
-
 rewrite absxk.
 
 
-replace (- IZR (Zdiv_sup (B_powerZ (Z.succ 1 * n + Z.succ 1 * msdx + 1))
- (Z.abs (xc (n + Z.succ 1 * msdx + 1)%Z + 1))))
+replace (- IZR (Zdiv_sup (B_powerZ (2 * n + 2 * msdx + 1))
+ (Z.abs (xc (n + 2 * msdx + 1)%Z + 1))))
 with 
-(IZR (Z.sgn (xc (n + Z.succ 1 * msdx + 1)%Z + 1)) *
- IZR (Zdiv_sup (B_powerZ (Z.succ 1 * n + Z.succ 1 * msdx + 1)) 
-(Z.abs (xc (n + Z.succ 1 * msdx + 1)%Z + 1)))).
+(IZR (Z.sgn (xc (n + 2 * msdx + 1)%Z + 1)) *
+ IZR (Zdiv_sup (B_powerZ (2 * n + 2 * msdx + 1)) 
+(Z.abs (xc (n + 2 * msdx + 1)%Z + 1)))).
 rewrite produitIZR. apply IZR_trivial.
 
 apply Zdiv_sup_opp. 
@@ -2089,18 +2071,18 @@ replace ((0 - 1)%Z) with ((-1)%Z) in Habs.
 
 apply lt_IZR. replace (0) with (-1 + 1).
 
-replace (IZR (xc (n + Z.succ 1 * msdx + 1)%Z + 1)) with
- (IZR (xc (n + Z.succ 1 * msdx + 1)%Z + 1) - 1 + 1). rewrite <- minus_IZR.
+replace (IZR (xc (n + 2 * msdx + 1)%Z + 1)) with
+ (IZR (xc (n + 2 * msdx + 1)%Z + 1) - 1 + 1). rewrite <- minus_IZR.
 
 apply Rplus_lt_compat_r.
 
-replace (IZR (xc (n + Z.succ 1 * msdx + 1)%Z + 1 - 1)) with
- (IZR (xc (n + Z.succ 1 * msdx + 1)%Z)).
+replace (IZR (xc (n + 2 * msdx + 1)%Z + 1 - 1)) with
+ (IZR (xc (n + 2 * msdx + 1)%Z)).
 
 apply IZR_lt. assumption. apply IZR_trivial. ring.
 ring. ring. ring. ring. ring. ring. assumption.
 
-assert (sgnxkplus1 : (Z.sgn (xc (n + Z.succ 1 * msdx + 1)%Z + 1) = -1)%Z).
+assert (sgnxkplus1 : (Z.sgn (xc (n + 2 * msdx + 1)%Z + 1) = -1)%Z).
 
  apply Z.sgn_neg_iff.
 
@@ -2123,18 +2105,18 @@ replace ((0 - 1)%Z) with ((-1)%Z) in Habs.
 
 apply lt_IZR. replace (0) with (-1 + 1).
 
-replace (IZR (xc (n + Z.succ 1 * msdx + 1)%Z + 1)) with
- (IZR (xc (n + Z.succ 1 * msdx + 1)%Z + 1) - 1 + 1). rewrite <- minus_IZR.
+replace (IZR (xc (n + 2 * msdx + 1)%Z + 1)) with
+ (IZR (xc (n + 2 * msdx + 1)%Z + 1) - 1 + 1). rewrite <- minus_IZR.
 
 apply Rplus_lt_compat_r.
 
-replace (IZR (xc (n + Z.succ 1 * msdx + 1)%Z + 1 - 1)) with
- (IZR (xc (n + Z.succ 1 * msdx + 1)%Z)).
+replace (IZR (xc (n + 2 * msdx + 1)%Z + 1 - 1)) with
+ (IZR (xc (n + 2 * msdx + 1)%Z)).
 
 apply IZR_lt. assumption. apply IZR_trivial. ring.
 ring. ring. ring. ring. ring. ring. assumption.
 
-rewrite sgnxkplus1. ring. ring. ring. ring. reflexivity.
+rewrite sgnxkplus1. ring. ring. reflexivity.
 
 reflexivity. ring. ring. ring. ring.
 
@@ -2148,16 +2130,15 @@ replace (0 + 1) with (1).
 apply IZR_le. apply trivial41.
 
 apply lt_IZR. replace (IZR beta) with 
-(IZR (Zdiv_sup (B_powerZ (Z.succ (Z.succ 0) * n + Z.succ (Z.succ 0) * msdx + Z.succ 0))
-          (Z.abs (xc (n + Z.succ (Z.succ 0) * msdx + Z.succ 0)%Z) - Z.succ 0))).
+(IZR (Zdiv_sup (B_powerZ (2 * n + 2 * msdx + 1))
+          (Z.abs (xc (n + 2 * msdx + 1)%Z) - 1))).
 
-apply Rlt_le_trans with (IZR (B_powerZ (Z.succ (Z.succ 0) * n + Z.succ (Z.succ 0) * msdx + Z.succ 0)) * /
-IZR (Z.abs (xc (n + Z.succ (Z.succ 0) * msdx + Z.succ 0)%Z) - Z.succ 0)).
+apply Rlt_le_trans with (IZR (B_powerZ (2 * n + 2 * msdx + 1)) * /
+IZR (Z.abs (xc (n + 2 * msdx + 1)%Z) - 1)).
 apply produitdedeuxpositifsR.
 
 rewrite inverseB_power. apply Bexpos. 
-replace (Z.succ (Z.succ 0)) with (2%Z).
-replace (Z.succ 0) with (1%Z).
+
 apply inversegeZ. apply le_IZR.
 rewrite plus_IZR. apply Rle_trans with (IZR (2 * n + 2 * msdx)).
 rewrite plus_IZR. replace (0) with (IZR (-2 * msdx) + IZR (2 * msdx)).
@@ -2169,28 +2150,28 @@ apply IZR_lt. apply inverseltZ. assumption.
 rewrite <- plus_IZR. apply IZR_trivial. ring.
 rewrite <- plus_IZR. apply IZR_trivial. ring.
 rewrite <- plus_IZR. apply IZR_trivial. ring. lra.
-ring. ring.
+
  apply inversegtR. apply Rinv_0_lt_compat.
 replace (0) with (0 + 1 + (-1)).
 
-replace (IZR (Z.abs (xc (n + Z.succ (Z.succ 0) * msdx + Z.succ 0)%Z) - Z.succ 0)) with
-(IZR (Z.abs (xc (n + Z.succ (Z.succ 0) * msdx + Z.succ 0)%Z) - Z.succ 0) + 1 + (-1)).
+replace (IZR (Z.abs (xc (n + 2 * msdx + 1)%Z) - 1)) with
+(IZR (Z.abs (xc (n + 2 * msdx + 1)%Z) - 1) + 1 + (-1)).
 
-apply Rplus_lt_compat_r. replace (Z.succ 0) with (1%Z). rewrite  minus_IZR.
+apply Rplus_lt_compat_r. rewrite  minus_IZR.
 replace (0 + 1) with (1). 
-replace (IZR (Z.abs (xc (n + Z.succ 1 * msdx + 1)%Z)) - 1 + 1) with
-(IZR (Z.abs (xc (n + Z.succ 1 * msdx + 1)%Z))).
+replace (IZR (Z.abs (xc (n + 2 * msdx + 1)%Z)) - 1 + 1) with
+(IZR (Z.abs (xc (n + 2 * msdx + 1)%Z))).
 apply IZR_lt. apply inverseltZ. assumption. ring. ring. ring.
-ring. ring.
+ring. 
 
 apply inverseleR. apply zdivsupge.
-replace (Z.succ 0) with (1%Z). apply inversegtZ. apply lt_IZR.
+apply inversegtZ. apply lt_IZR.
 rewrite minus_IZR.
-replace (IZR (Z.abs (xc (n + Z.succ 1 * msdx + 1)%Z)) - 1) with
-(IZR (Z.abs (xc (n + Z.succ 1 * msdx + 1)%Z)) + (- 1)).
+replace (IZR (Z.abs (xc (n + 2 * msdx + 1)%Z)) - 1) with
+(IZR (Z.abs (xc (n + 2 * msdx + 1)%Z)) + (- 1)).
 replace (0) with (1 + (-1)). apply Rplus_lt_compat_r.
 apply IZR_lt. apply inverseltZ. assumption. ring.
-ring. ring.
+ring.
 
  trivial. ring. rewrite minus_IZR. ring.
 ring. ring.
@@ -2199,21 +2180,19 @@ rewrite Rabsunsurx. reflexivity.
 assumption.
 
 apply le_IZR. apply Rle_trans with (IZR alpha).  apply IZR_le. 
-replace (alpha) with ((Z.of_nat B ^ (Z.succ (Z.succ 0) * n + Z.succ (Z.succ 0) * msdx + Z.succ 0) /
-          (Z.abs (xc (n + Z.succ (Z.succ 0) * msdx + Z.succ 0)) + Z.succ 0))%Z). 
+replace (alpha) with ((Z.of_nat B ^ (2 * n + 2 * msdx + 1) /
+          (Z.abs (xc (n + 2 * msdx + 1)) + 1))%Z). 
 apply inverseleZ.
 
 apply Z_div_ge0.
 
 apply inversegtZ. apply lt_IZR. apply inverseltR. apply trivial28.
 replace (1) with (0 + 1). rewrite plus_IZR.
-replace (IZR (Z.succ 0)) with (1). apply Rplus_gt_compat_r.
+replace (IZR (1)) with (1). apply Rplus_gt_compat_r.
 apply trivial28. apply inversegtR. apply IZR_lt. apply inverseltZ. assumption.
 apply IZR_trivial. ring. ring.
 apply inversegeZ.  apply le_IZR. rewrite <- B_powerRZandZofnat. apply inverseleR.
 apply Rgt_ge. apply Bexpos. 
-replace (Z.succ (Z.succ 0)) with (2%Z).
-replace (Z.succ 0) with (1%Z).
 apply inversegeZ. apply le_IZR.
 rewrite plus_IZR. apply Rle_trans with (IZR (2 * n + 2 * msdx)).
 rewrite plus_IZR. replace (0) with (IZR (-2 * msdx) + IZR (2 * msdx)).
@@ -2225,7 +2204,7 @@ apply IZR_lt. apply inverseltZ. assumption.
 rewrite <- plus_IZR. apply IZR_trivial. ring.
 rewrite <- plus_IZR. apply IZR_trivial. ring.
 rewrite <- plus_IZR. apply IZR_trivial. ring. lra.
-ring. ring. trivial.
+now trivial.
 replace (IZR alpha) with (IZR alpha + 0). rewrite plus_IZR.
 apply Rplus_le_compat_l. lra. ring.
 rewrite Rabsunsurx. reflexivity. assumption. }

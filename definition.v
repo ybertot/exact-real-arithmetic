@@ -117,7 +117,7 @@ Definition Zdiv_sup (a b : Z) :=
   end.
 
 (* In the original paper, msd is described as a function that may not
-  terminate when the argument xc represents zero.  Here, we prefer to
+  terminate when the argument xc represents zero.  Here, we prefer
   to describe the inverse_reelc function as taking as extra argument
   which expresses the order of magnitude of the input.  It is actually
   a witness that the input is non-zero. *)
@@ -126,13 +126,7 @@ Definition inverse_reelc (xc : Reelc) (msdx : Z) : Reelc :=
   match Z_le_gt_dec n (- msdx) with
   | left _ => 0%Z
   | right _ =>
-      match Z_gt_le_dec (xc (n + 2 * msdx + 1)%Z) 1 with
-      | left _ =>
-          Zdiv_sup (B_powerZ (2 * n + 2 * msdx + 1))
-            (xc (n + 2 * msdx + 1)%Z)
-      | right _ =>
-          (B_powerZ (2 * n + 2 * msdx + 1) / xc (n + 2 * msdx + 1))%Z
-      end
+     (B_powerZ (2 * n + 2 * msdx + 1) / (xc (n + 2 * msdx + 1) + 1) + 1)%Z
   end.    
 
 Definition racine_reelc (xc : Reelc) : Reelc :=
