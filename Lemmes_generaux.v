@@ -301,6 +301,88 @@ apply Z.lt_gt; auto with zarith.
 apply powerRZ_O.
 Qed.
 
+Lemma trial xc : encadrement xc (1/99) ->
+  B = 10%nat ->
+  msd_prop xc 2.
+Proof.
+intros enc.
+intros B10.
+split.
+  intros n; destruct (enc n) as [enc1 enc2].
+  intros n2.
+  rewrite Z.abs_le; split; apply le_IZR.
+    rewrite opp_IZR; enough (0 <= IZR (xc n) + 1) by lra.
+    apply Rlt_le; apply Rle_lt_trans with (2 := enc2).
+    enough (0 <= B_powerRZ n) by lra.
+    now apply powerRZ_le, INR_B_non_nul.
+  apply IZR_le, Zlt_succ_le; unfold Z.succ.
+  enough (xc n - 1 < 1)%Z by lia.
+  apply lt_IZR; rewrite minus_IZR.
+  apply Rlt_trans with (1 := enc1).
+  rewrite <- Z.le_succ_l in n2.
+  apply Zle_lt_or_eq in n2; destruct n2 as [n1' | n1].
+  assert (n1 : (n < 1)%Z) by lia.
+    apply Rlt_trans with (1/10 * B_powerRZ n).
+      apply Rmult_lt_compat_r;[|lra].
+      now apply powerRZ_lt, INR_B_non_nul.
+    replace 10 with (B_powerRZ 1).
+      unfold Rdiv, B_powerRZ; rewrite Rinv_powerRZ, Rmult_1_l.
+        rewrite <- powerRZ_add.
+          rewrite <- (powerRZ_O (INR B)).
+          apply powerRZ_croissance.
+            rewrite B10; simpl; lra.
+          lia.
+        now apply Rgt_not_eq, INR_B_non_nul.
+      now apply Rgt_not_eq, INR_B_non_nul.
+  unfold B_powerRZ; rewrite B10; simpl; lra.
+  assert 
+
+Lemma msd_prop2 (x : R) (xc : Reelc) :
+  x <> 0 -> encadrement xc x -> 
+  msd_prop xc (- (Int_part (Rlog (Rabs x) (INR B)) + 1))%Z.
+Proof.
+intros xn0 xcx.
+case (Rle_lt_dec 0 x).
+  split.
+    intros n nl; destruct (xcx n) as [enc1 enc2].
+    rewrite Z.abs_le; split; apply le_IZR.
+      rewrite opp_IZR.
+      enough (0 <= IZR (xc n) + 1) by lra.
+      apply Rlt_le.
+      apply Rle_lt_trans with (2 := enc2).
+      apply Rmult_le_pos; auto.
+      now apply powerRZ_le; apply INR_B_non_nul.
+    enough (IZR (xc n) - 1 <= 0) by lra.
+    rewrite <- minus_IZR; apply IZR_le.
+    apply Zlt_succ_le; cbv [Z.succ Z.add].
+    apply lt_IZR; rewrite minus_IZR.
+    apply Rlt_trans with (1 := enc1).
+    apply Rmult_lt_reg_r with (/B_powerRZ n).
+      apply Rinv_0_lt_compat.
+      now apply powerRZ_lt; apply INR_B_non_nul.
+    rewrite Rmult_assoc.
+    rewrite Rinv_r;[|apply not_eq_sym, Rlt_not_eq, powerRZ_lt, INR_B_non_nul ].
+    rewrite Rmult_1_l, Rmult_1_r.
+    assert (xrabs : x = Rabs x).
+      now rewrite Rabs_pos_eq; auto.
+    rewrite xrabs.    
+    unfold B_powerRZ; rewrite Rinv_powerRZ;
+      [|apply Rgt_not_eq, INR_B_non_nul].
+    apply Rlt_trans with (1 := powerRZ_Int_part_Rabs2 _ xn0).
+    apply powerRZ_croissance.
+      replace 1 with (INR 1) by reflexivity; apply lt_INR.
+      apply le_trans with (2 := B_sup_4); lia.
+    rewrite Z.opp_lt_mono, Z.opp_involutive; assumption.
+  set (n := (- _)%Z).
+  destruct (xcx n) as [enc1 enc2].
+
+  apply Z.lt_gt, lt_IZR.
+  rewrite abs_IZR.
+  assert (tmp := powerRZ_Int_part_Rabs _ xn0).  
+  revert tmp; rewrite Rabs_pos_eq; auto.
+  assert (powerRZ (INR B) ((Int_part (Rlog x (INR B))) - 1) < x / INR B).
+    admit.
+
 Lemma msd_ax2 :
  forall (x : R) (xc yc : Reelc) (msdx : Z) (msdy : option Z) (n : Z),
  x <> 0 ->

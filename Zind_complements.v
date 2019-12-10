@@ -24,11 +24,12 @@ Qed.
 
 
 Lemma Zabs_ind_ter :
- forall (P1 : Reelc -> Reelc -> Prop) (P : R -> R -> Reelc -> Reelc -> Prop)
-   (x y : R) (xc yc : Reelc),
- (P y x yc xc -> P x y xc yc) ->
- (forall (x y : R) (xc yc : Reelc), P1 xc yc -> P x y xc yc) ->
- P1 xc yc \/ P1 yc xc -> P x y xc yc. 
+ forall (P1 : Reelc -> Reelc -> option Z -> option Z -> Prop)
+   (P : R -> R -> Reelc -> Reelc -> option Z -> option Z -> Prop)
+   (x y : R) (xc yc : Reelc) (msdx msdy : option Z),
+ (P y x yc xc msdy msdx -> P x y xc yc msdx msdy) ->
+ (forall (x y : R) (xc yc : Reelc) (msdx msdy : option Z), P1 xc yc msdx msdy -> P x y xc yc msdx msdy) ->
+ P1 xc yc msdx msdy \/ P1 yc xc msdy msdx -> P x y xc yc msdx msdy.
 
 Proof.
 intros.

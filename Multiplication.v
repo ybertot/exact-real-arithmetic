@@ -18,15 +18,18 @@ Require Import Rbase_operations.
 Require Import Rbase_inegalites.
 Require Import powerRZ_complements.
 Require Import sg.
+Require Import Rlog.
 
 Lemma multiplication_correct :
- forall (X Y : R) (XC YC : Reelc),
+ forall (X Y : R) (XC YC : Reelc) (msdx msdy : option Z),
  encadrement XC X ->
- encadrement YC Y -> encadrement (multiplication_reelc XC YC) (X * Y).   
-
+ encadrement YC Y ->
+ omsd_prop XC msdx ->
+ omsd_prop YC msdy ->
+ encadrement (multiplication_reelc XC YC msdx msdy) (X * Y).
 Proof.
 unfold encadrement in |- *.
-intros.
+intros X Y XC YC msdx msdy H H0 mpx mpy n.
 unfold multiplication_reelc in |- *.
 pattern X, Y in |- *.
 apply Rind_eq_or.
@@ -35,13 +38,13 @@ elim H1.
 intro.
 rewrite H2.
 do 2 rewrite Rmult_0_l.
-replace (XC (p_max YC n)) with 0%Z;
+replace (XC (p_max YC msdy n)) with 0%Z;
  [ simpl in |- * | symmetry  in |- *; apply xc_nul with X; auto ].
 split; lra.
 intro.
 rewrite H2.
 rewrite Rmult_0_r; rewrite Rmult_0_l.
-replace (YC (p_max XC n)) with 0%Z;
+replace (YC (p_max XC msdx n)) with 0%Z;
  [ idtac | symmetry  in |- *; apply xc_nul with Y; auto ].
 rewrite <- Zmult_0_r_reverse.
 rewrite Zmult_comm.
@@ -51,32 +54,33 @@ split; lra.
 intro H00.
 elim H00; clear H00.
 intros H01 H02.
-pattern (YC (p_max XC n)), (XC (p_max YC n)) in |- *.
+pattern (YC (p_max XC msdx n)), (XC (p_max YC msdy n)) in |- *.
 apply Zabs_ind_bis.
 intros; elim H1; intros; clear H1.
 rewrite H2; rewrite H3; simpl in |- *.
 RingReplace (0 - 1) (-1); RingReplace (0 + 1) 1.
 apply Rbase_doubles_inegalites.Rabsolu_def3.
-apply Rmult_lt_reg_l with (B_powerRZ (p_max YC n + p_max XC n - n)).
+apply Rmult_lt_reg_l with (B_powerRZ (p_max YC msdy n + p_max XC msdx n - n)).
 unfold B_powerRZ in |- *.
 apply powerRZ_lt.
 apply INR_B_non_nul.
 apply Rlt_trans with 1.
 rewrite Rabs_mult; replace (Rabs (B_powerRZ n)) with (B_powerRZ n).
 rewrite Rmult_comm; rewrite Rmult_assoc; unfold B_powerRZ in |- *.
-replace (powerRZ (INR B) n * powerRZ (INR B) (p_max YC n + p_max XC n - n))
- with (powerRZ (INR B) (p_max YC n + p_max XC n)).
-replace (powerRZ (INR B) (p_max YC n + p_max XC n)) with
- (powerRZ (INR B) (p_max YC n) * powerRZ (INR B) (p_max XC n)).
+replace (powerRZ (INR B) n * powerRZ (INR B)
+           (p_max YC msdy n + p_max XC msdx n - n))
+ with (powerRZ (INR B) (p_max YC msdy n + p_max XC msdx n)).
+replace (powerRZ (INR B) (p_max YC msdy n + p_max XC msdx n)) with
+ (powerRZ (INR B) (p_max YC msdy n) * powerRZ (INR B) (p_max XC msdx n)).
 rewrite Rabs_mult.
 cut (encadrement (absolue_reelc XC) (Rabs X)).
 cut (encadrement (absolue_reelc YC) (Rabs Y)).
 intros.
-generalize (H4 (p_max YC n)); unfold absolue_reelc in |- *; rewrite H3;
+generalize (H4 (p_max YC msdy n)); unfold absolue_reelc in |- *; rewrite H3;
  simpl in |- *.
 RingReplace (0 - 1) (-1); RingReplace (0 + 1) 1; intros.
 decompose [and] H5; clear H5.
-generalize (H1 (p_max XC n)); unfold absolue_reelc in |- *; rewrite H2;
+generalize (H1 (p_max XC msdx n)); unfold absolue_reelc in |- *; rewrite H2;
  simpl in |- *.
 RingReplace (0 - 1) (-1); RingReplace (0 + 1) 1; intros.
 decompose [and] H5; clear H5.
@@ -93,16 +97,16 @@ apply absolue_correct; auto.
 apply absolue_correct; auto.
 symmetry  in |- *; apply powerRZ_add.
 apply Rgt_not_eq; apply Rlt_gt; apply INR_B_non_nul.
-pattern (p_max YC n + p_max XC n)%Z at 1 in |- *. 
-replace (p_max YC n + p_max XC n)%Z with (p_max YC n + p_max XC n - n + n)%Z. 
+pattern (p_max YC msdy n + p_max XC msdx n)%Z at 1 in |- *. 
+replace (p_max YC msdy n + p_max XC msdx n)%Z with (p_max YC msdy n + p_max XC msdx n - n + n)%Z. 
 rewrite Rmult_comm; apply powerRZ_add.
 apply Rgt_not_eq; apply Rlt_gt; apply INR_B_non_nul.
 ring.
 symmetry  in |- *; apply Rabs_right; apply Rgt_ge; unfold B_powerRZ in |- *;
  apply Rlt_gt; apply powerRZ_lt; apply INR_B_non_nul.
 unfold B_powerRZ in |- *;
- RingReplace (powerRZ (INR B) (p_max YC n + p_max XC n - n) * 1)
-  (powerRZ (INR B) (p_max YC n + p_max XC n - n)).
+ RingReplace (powerRZ (INR B) (p_max YC msdy n + p_max XC msdx n - n) * 1)
+  (powerRZ (INR B) (p_max YC msdy n + p_max XC msdx n - n)).
 apply powerRZ_lt_1.
 apply INR_lt_1.
 generalize B_sup_4.
@@ -114,36 +118,36 @@ apply le_pmax_n.
 (*2eme partie*)
 
 intro.
-generalize H H0 H01 H02; clear H H0 H01 H02.
-pattern X, Y, XC, YC in |- *.
+generalize H H0 H01 H02 mpx mpy; clear H H0 H01 H02 mpx mpy.
+pattern X, Y, XC, YC, msdx, msdy in |- *.
 apply
  Zabs_ind_ter
-  with (P1 := fun zc wc : Reelc => (0 < Z.abs (zc (p_max wc n)))%Z).
+  with (P1 := fun (zc wc : Reelc) msdz msdw => (0 < Z.abs (zc (p_max wc msdw n)))%Z).
 3: tauto.
 intros.
-generalize (H H2 H0).
+generalize (H H2 H0 H02 H01 mpy).
 intro; clear H H2 H0 H1.
-RingReplace (Z.sgn (XC (p_max YC n)) * Z.sgn (YC (p_max XC n)))%Z
- (Z.sgn (YC (p_max XC n)) * Z.sgn (XC (p_max YC n)))%Z.
+RingReplace (Z.sgn (XC (p_max YC msdy n)) * Z.sgn (YC (p_max XC msdx n)))%Z
+ (Z.sgn (YC (p_max XC msdx n)) * Z.sgn (XC (p_max YC msdy n)))%Z.
 RingReplace (X * Y) (Y * X).
-replace (Z.abs (XC (p_max YC n) * YC (p_max XC n)))
- with (Z.abs (YC (p_max XC n) * XC (p_max YC n))).
-RingReplace (p_max YC n + p_max XC n)%Z (p_max XC n + p_max YC n)%Z.
-auto.
-rewrite Zmult_comm; auto.
+replace (Z.abs (XC (p_max YC msdy n) * YC (p_max XC msdx n)))
+ with (Z.abs (YC (p_max XC msdx n) * XC (p_max YC msdy n))).
+RingReplace (p_max YC msdy n + p_max XC msdx n)%Z (p_max XC msdx n + p_max YC msdy n)%Z.
+now auto.
+now rewrite Zmult_comm; auto.
 
 (*3eme partie*)
 
-intros.
+clear X Y XC YC H1 msdx msdy.
+intros x y xc yc msdx msdy H H0 H2 H01 H02 mpx mpy.
 cut
- (IZR (Z.abs (xc (p_max yc n)) + Z.abs (yc (p_max xc n))) *
-  / B_powerRZ (p_max yc n + p_max xc n - n) <= 1 * / 2).  
+ (IZR (Z.abs (xc (p_max yc msdy n)) + Z.abs (yc (p_max xc msdx n))) *
+  / B_powerRZ (p_max yc msdy n + p_max xc msdx n - n) <= 1 * / 2).  
 intro a.
-clear X Y XC YC H1.
-pattern (yc (p_max xc n)) in |- *.
+pattern (yc (p_max xc msdx n)) in |- *.
 apply Zabs_ind_4.
-intro.
-rewrite H1; rewrite <- Zmult_0_r_reverse; rewrite Zmult_comm;
+intro ycp.
+rewrite ycp; rewrite <- Zmult_0_r_reverse; rewrite Zmult_comm;
  rewrite <- Zmult_0_r_reverse; simpl in |- *.
 RingReplace (0 - 1) (-1); RingReplace (0 + 1) 1. 
 apply Rbase_doubles_inegalites.Rabsolu_def3.
@@ -152,30 +156,30 @@ do 2 rewrite Rabs_mult.
 apply
  Rlt_trans
   with
-    ((1 + IZR (Z.abs (xc (p_max yc n) * yc (p_max xc n)))) *
-     / B_powerRZ (p_max yc n + p_max xc n - n) + 1 * / 2). 
+    ((1 + IZR (Z.abs (xc (p_max yc msdy n) * yc (p_max xc msdx n)))) *
+     / B_powerRZ (p_max yc msdy n + p_max xc msdx n - n) + 1 * / 2). 
 apply
  Rlt_le_trans
   with
-    ((1 + IZR (Z.abs (xc (p_max yc n) * yc (p_max xc n))) +
-      IZR (Z.abs (xc (p_max yc n)) + Z.abs (yc (p_max xc n)))) *
-     / B_powerRZ (p_max yc n + p_max xc n - n)).
+    ((1 + IZR (Z.abs (xc (p_max yc msdy n) * yc (p_max xc msdx n))) +
+      IZR (Z.abs (xc (p_max yc msdy n)) + Z.abs (yc (p_max xc msdx n)))) *
+     / B_powerRZ (p_max yc msdy n + p_max xc msdx n - n)).
 apply Rlt_Rinv_l_to_r.
 unfold B_powerRZ in |- *.
 apply powerRZ_lt.
 apply INR_B_non_nul.
 replace (Rabs (B_powerRZ n)) with (B_powerRZ n); unfold B_powerRZ in |- *.
 rewrite Rmult_assoc.
-replace (powerRZ (INR B) n * powerRZ (INR B) (p_max yc n + p_max xc n - n))
- with (powerRZ (INR B) (p_max yc n + p_max xc n)). 
-replace (powerRZ (INR B) (p_max yc n + p_max xc n)) with
- (powerRZ (INR B) (p_max yc n) * powerRZ (INR B) (p_max xc n)). 
+replace (powerRZ (INR B) n * powerRZ (INR B) (p_max yc msdy n + p_max xc msdx n - n))
+ with (powerRZ (INR B) (p_max yc msdy n + p_max xc msdx n)). 
+replace (powerRZ (INR B) (p_max yc msdy n + p_max xc msdx n)) with
+ (powerRZ (INR B) (p_max yc msdy n) * powerRZ (INR B) (p_max xc msdx n)). 
 rewrite Rmult_mult_mult.
 replace
- (1 + IZR (Z.abs (xc (p_max yc n) * yc (p_max xc n))) +
-  IZR (Z.abs (xc (p_max yc n)) + Z.abs (yc (p_max xc n))))
+ (1 + IZR (Z.abs (xc (p_max yc msdy n) * yc (p_max xc msdx n))) +
+  IZR (Z.abs (xc (p_max yc msdy n)) + Z.abs (yc (p_max xc msdx n))))
  with
-  ((IZR (Z.abs (xc (p_max yc n))) + 1) * (IZR (Z.abs (yc (p_max xc n))) + 1)). 
+  ((IZR (Z.abs (xc (p_max yc msdy n))) + 1) * (IZR (Z.abs (yc (p_max xc msdx n))) + 1)). 
 apply Rmult_le.
 apply Rle_ge.
 apply Rmult_le_pos.
@@ -184,28 +188,27 @@ apply Rabs_pos.
 apply Rlt_gt; apply Rle_lt_0_plus_1.
 RingReplace 0 (IZR 0); apply IZR_le; apply Zabs_pos.
 cut (encadrement (absolue_reelc xc) (Rabs x)).
-unfold encadrement in |- *; intro.
-generalize (H3 (p_max yc n)); clear H3.
+unfold encadrement in |- *; intro H3.
+generalize (H3 (p_max yc msdy n)); clear H3.
 unfold absolue_reelc in |- *.
-intro.
-elim H3; intros; clear H3.
+intros [H4 H5].
 rewrite Rmult_comm; auto.
 apply absolue_correct; auto.
 cut (encadrement (absolue_reelc yc) (Rabs y)).
-unfold encadrement in |- *; intro.
-generalize (H3 (p_max xc n)); clear H3.
+unfold encadrement in |- *; intro H3.
+generalize (H3 (p_max xc msdx n)); clear H3.
 unfold absolue_reelc in |- *.
-intro.
+intro H3.
 elim H3; intros; clear H3.
 rewrite Rmult_comm; auto.
 apply absolue_correct; auto.
 rewrite Zabs_mult; rewrite plus_IZR; rewrite mult_IZR; ring.
-replace (powerRZ (INR B) (p_max yc n) * powerRZ (INR B) (p_max xc n)) with
- (powerRZ (INR B) (p_max yc n + p_max xc n)); auto.
+replace (powerRZ (INR B) (p_max yc msdy n) * powerRZ (INR B) (p_max xc msdx n)) with
+ (powerRZ (INR B) (p_max yc msdy n + p_max xc msdx n)); auto.
 apply powerRZ_add.
 apply Rgt_not_eq; apply Rlt_gt; apply INR_B_non_nul.
-replace (powerRZ (INR B) n * powerRZ (INR B) (p_max yc n + p_max xc n - n))
- with (powerRZ (INR B) (n + (p_max yc n + p_max xc n - n))). 
+replace (powerRZ (INR B) n * powerRZ (INR B) (p_max yc msdy n + p_max xc msdx n - n))
+ with (powerRZ (INR B) (n + (p_max yc msdy n + p_max xc msdx n - n))). 
 apply powerRZ_trivial.
 ring.
 apply powerRZ_add.
@@ -216,7 +219,7 @@ apply Rlt_le; apply powerRZ_lt; apply INR_B_non_nul.
 rewrite Rmult_plus_distr_r.
 apply Rplus_le_compat_l.
 auto.
-rewrite H1.
+rewrite ycp.
 rewrite <- Zmult_0_r_reverse; simpl in |- *.
 RingReplace (1 + 0) 1.
 apply Rlt_add_compatibility3.
@@ -238,9 +241,9 @@ rewrite S_INR; simpl in |- *; ring.
 apply le_pmax_n.
 field; apply Rgt_not_eq; lra.
 intro.
-replace (Z.sgn (xc (p_max yc n))) with (sg x).
+replace (Z.sgn (xc (p_max yc msdy n))) with (sg x).
 2: symmetry  in |- *; apply Zsgn_sg; auto; auto.
-replace (Z.sgn (yc (p_max xc n))) with (sg y).
+replace (Z.sgn (yc (p_max xc msdx n))) with (sg y).
 2: symmetry  in |- *; apply Zsgn_sg; auto; auto.
 pattern (x * y) in |- *.
 rewrite sg.Rabsolu_sg_bis.
@@ -248,11 +251,11 @@ rewrite Rabs_mult.
 rewrite sg_mult; rewrite mult_IZR.
 pattern x, y in |- *.
 apply sg_ind_bis.
-apply sg_Zsgn_abs with xc (p_max yc n).
+apply sg_Zsgn_abs with xc (p_max yc msdy n).
 apply absolue_correct.
 auto.
 auto.
-apply sg_Zsgn_abs with yc (p_max xc n).
+apply sg_Zsgn_abs with yc (p_max xc msdx n).
 apply absolue_correct.
 auto.
 auto.
@@ -273,70 +276,70 @@ rewrite Rmult_minus_distr_l; rewrite <- Rmult_assoc; RingReplace (-1 * -1) 1.
 RingReplace
  (1 *
   IZR
-    (gauss_z_sur_B_pow (1 + Z.abs (xc (p_max yc n) * yc (p_max xc n)))
-       (p_max yc n + p_max xc n - n)) - -1 * 1)
+    (gauss_z_sur_B_pow (1 + Z.abs (xc (p_max yc msdy n) * yc (p_max xc msdx n)))
+       (p_max yc msdy n + p_max xc msdx n - n)) - -1 * 1)
  (IZR
-    (gauss_z_sur_B_pow (1 + Z.abs (xc (p_max yc n) * yc (p_max xc n)))
-       (p_max yc n + p_max xc n - n)) + 1).
+    (gauss_z_sur_B_pow (1 + Z.abs (xc (p_max yc msdy n) * yc (p_max xc msdx n)))
+       (p_max yc msdy n + p_max xc msdx n - n)) + 1).
 apply
  Rlt_2_le_lt_and
   with
-    (IZR (1 + Z.abs (xc (p_max yc n) * yc (p_max xc n))) *
-     / B_powerRZ (p_max yc n + p_max xc n - n) - 1 * / 2)
-    (IZR (1 + Z.abs (xc (p_max yc n) * yc (p_max xc n))) *
-     / B_powerRZ (p_max yc n + p_max xc n - n) + 1 * / 2).
+    (IZR (1 + Z.abs (xc (p_max yc msdy n) * yc (p_max xc msdx n))) *
+     / B_powerRZ (p_max yc msdy n + p_max xc msdx n - n) - 1 * / 2)
+    (IZR (1 + Z.abs (xc (p_max yc msdy n) * yc (p_max xc msdx n))) *
+     / B_powerRZ (p_max yc msdy n + p_max xc msdx n - n) + 1 * / 2).
 2: apply Rlt_le_2_gauss.
 2: generalize
-    (gauss_correct_pow (1 + Z.abs (xc (p_max yc n) * yc (p_max xc n)))
-       (p_max yc n + p_max xc n - n)).
+    (gauss_correct_pow (1 + Z.abs (xc (p_max yc msdy n) * yc (p_max xc msdx n)))
+       (p_max yc msdy n + p_max xc msdx n - n)).
 2: tauto.
 apply
  Rle_2_Rlt_2
   with
-    ((1 + IZR (Z.abs (xc (p_max yc n) * yc (p_max xc n))) -
-      IZR (Z.abs (xc (p_max yc n)) + Z.abs (yc (p_max xc n)))) *
-     / B_powerRZ (p_max yc n + p_max xc n - n))
-    ((1 + IZR (Z.abs (xc (p_max yc n) * yc (p_max xc n))) +
-      IZR (Z.abs (xc (p_max yc n)) + Z.abs (yc (p_max xc n)))) *
-     / B_powerRZ (p_max yc n + p_max xc n - n)).
+    ((1 + IZR (Z.abs (xc (p_max yc msdy n) * yc (p_max xc msdx n))) -
+      IZR (Z.abs (xc (p_max yc msdy n)) + Z.abs (yc (p_max xc msdx n)))) *
+     / B_powerRZ (p_max yc msdy n + p_max xc msdx n - n))
+    ((1 + IZR (Z.abs (xc (p_max yc msdy n) * yc (p_max xc msdx n))) +
+      IZR (Z.abs (xc (p_max yc msdy n)) + Z.abs (yc (p_max xc msdx n)))) *
+     / B_powerRZ (p_max yc msdy n + p_max xc msdx n - n)).
 apply Rlt_2_Rmult_Rinv.
 unfold B_powerRZ in |- *.
 apply powerRZ_lt.
 apply INR_B_non_nul.
 unfold B_powerRZ in |- *.
 rewrite Rmult_assoc.
-replace (powerRZ (INR B) n * powerRZ (INR B) (p_max yc n + p_max xc n - n))
- with (powerRZ (INR B) (p_max yc n + p_max xc n)). 
-replace (powerRZ (INR B) (p_max yc n + p_max xc n)) with
- (powerRZ (INR B) (p_max yc n) * powerRZ (INR B) (p_max xc n)). 
+replace (powerRZ (INR B) n * powerRZ (INR B) (p_max yc msdy n + p_max xc msdx n - n))
+ with (powerRZ (INR B) (p_max yc msdy n + p_max xc msdx n)). 
+replace (powerRZ (INR B) (p_max yc msdy n + p_max xc msdx n)) with
+ (powerRZ (INR B) (p_max yc msdy n) * powerRZ (INR B) (p_max xc msdx n)). 
 rewrite Rmult_mult_mult.
 replace
- (1 + IZR (Z.abs (xc (p_max yc n) * yc (p_max xc n))) +
-  IZR (Z.abs (xc (p_max yc n)) + Z.abs (yc (p_max xc n))))
+ (1 + IZR (Z.abs (xc (p_max yc msdy n) * yc (p_max xc msdx n))) +
+  IZR (Z.abs (xc (p_max yc msdy n)) + Z.abs (yc (p_max xc msdx n))))
  with
-  ((IZR (Z.abs (xc (p_max yc n))) + 1) * (IZR (Z.abs (yc (p_max xc n))) + 1)). 
+  ((IZR (Z.abs (xc (p_max yc msdy n))) + 1) * (IZR (Z.abs (yc (p_max xc msdx n))) + 1)). 
 replace
- (1 + IZR (Z.abs (xc (p_max yc n) * yc (p_max xc n))) -
-  IZR (Z.abs (xc (p_max yc n)) + Z.abs (yc (p_max xc n))))
+ (1 + IZR (Z.abs (xc (p_max yc msdy n) * yc (p_max xc msdx n))) -
+  IZR (Z.abs (xc (p_max yc msdy n)) + Z.abs (yc (p_max xc msdx n))))
  with
-  ((IZR (Z.abs (xc (p_max yc n))) - 1) * (IZR (Z.abs (yc (p_max xc n))) - 1)). 
+  ((IZR (Z.abs (xc (p_max yc msdy n))) - 1) * (IZR (Z.abs (yc (p_max xc msdx n))) - 1)). 
 apply Rle_mult_lt.
 cut (encadrement (absolue_reelc xc) (Rabs x)).
 unfold encadrement in |- *; intro.
-generalize (H4 (p_max yc n)); clear H4.
+generalize (H4 (p_max yc msdy n)); clear H4.
 unfold absolue_reelc in |- *.
 intro.
 rewrite Rmult_comm; auto.
 apply absolue_correct; auto.
 cut (encadrement (absolue_reelc yc) (Rabs y)).
 unfold encadrement in |- *; intro.
-generalize (H4 (p_max xc n)); clear H4.
+generalize (H4 (p_max xc msdx n)); clear H4.
 unfold absolue_reelc in |- *.
 rewrite Rmult_comm; auto.
 apply absolue_correct; auto.
 apply Rmult_lt_0_compat.
 apply powerRZ_lt; apply INR_B_non_nul.
-apply sg_Zsgn_abs with xc (p_max yc n).
+apply sg_Zsgn_abs with xc (p_max yc msdy n).
 apply absolue_correct; auto.
 auto.
 apply Rle_add_compatibility.
@@ -352,12 +355,12 @@ apply Rlt_le; apply IZR_lt.
 auto.
 rewrite Zabs_mult; rewrite mult_IZR; rewrite plus_IZR; ring.
 rewrite Zabs_mult; rewrite mult_IZR; rewrite plus_IZR; ring.
-replace (powerRZ (INR B) (p_max yc n) * powerRZ (INR B) (p_max xc n)) with
- (powerRZ (INR B) (p_max yc n + p_max xc n)); auto.
+replace (powerRZ (INR B) (p_max yc msdy n) * powerRZ (INR B) (p_max xc msdx n)) with
+ (powerRZ (INR B) (p_max yc msdy n + p_max xc msdx n)); auto.
 apply powerRZ_add.
 apply Rgt_not_eq; apply Rlt_gt; apply INR_B_non_nul.
-replace (powerRZ (INR B) n * powerRZ (INR B) (p_max yc n + p_max xc n - n))
- with (powerRZ (INR B) (n + (p_max yc n + p_max xc n - n))). 
+replace (powerRZ (INR B) n * powerRZ (INR B) (p_max yc msdy n + p_max xc msdx n - n))
+ with (powerRZ (INR B) (n + (p_max yc msdy n + p_max xc msdx n - n))). 
 apply powerRZ_trivial.
 ring.
 apply powerRZ_add.
@@ -378,24 +381,24 @@ rewrite Rmult_assoc; rewrite Rmult_1l.
 apply
  Rlt_2_le_lt_and
   with
-    (IZR (1 + Z.abs (xc (p_max yc n) * yc (p_max xc n))) *
-     / B_powerRZ (p_max yc n + p_max xc n - n) - 1 * / 2)
-    (IZR (1 + Z.abs (xc (p_max yc n) * yc (p_max xc n))) *
-     / B_powerRZ (p_max yc n + p_max xc n - n) + 1 * / 2).
+    (IZR (1 + Z.abs (xc (p_max yc msdy n) * yc (p_max xc msdx n))) *
+     / B_powerRZ (p_max yc msdy n + p_max xc msdx n - n) - 1 * / 2)
+    (IZR (1 + Z.abs (xc (p_max yc msdy n) * yc (p_max xc msdx n))) *
+     / B_powerRZ (p_max yc msdy n + p_max xc msdx n - n) + 1 * / 2).
 2: apply Rlt_le_2_gauss.
 2: generalize
-    (gauss_correct_pow (1 + Z.abs (xc (p_max yc n) * yc (p_max xc n)))
-       (p_max yc n + p_max xc n - n)).
+    (gauss_correct_pow (1 + Z.abs (xc (p_max yc msdy n) * yc (p_max xc msdx n)))
+       (p_max yc msdy n + p_max xc msdx n - n)).
 2: tauto.
 apply
  Rle_2_Rlt_2
   with
-    ((1 + IZR (Z.abs (xc (p_max yc n) * yc (p_max xc n))) -
-      IZR (Z.abs (xc (p_max yc n)) + Z.abs (yc (p_max xc n)))) *
-     / B_powerRZ (p_max yc n + p_max xc n - n))
-    ((1 + IZR (Z.abs (xc (p_max yc n) * yc (p_max xc n))) +
-      IZR (Z.abs (xc (p_max yc n)) + Z.abs (yc (p_max xc n)))) *
-     / B_powerRZ (p_max yc n + p_max xc n - n)).
+    ((1 + IZR (Z.abs (xc (p_max yc msdy n) * yc (p_max xc msdx n))) -
+      IZR (Z.abs (xc (p_max yc msdy n)) + Z.abs (yc (p_max xc msdx n)))) *
+     / B_powerRZ (p_max yc msdy n + p_max xc msdx n - n))
+    ((1 + IZR (Z.abs (xc (p_max yc msdy n) * yc (p_max xc msdx n))) +
+      IZR (Z.abs (xc (p_max yc msdy n)) + Z.abs (yc (p_max xc msdx n)))) *
+     / B_powerRZ (p_max yc msdy n + p_max xc msdx n - n)).
 apply Rlt_2_Rmult_Rinv.
 unfold B_powerRZ in |- *.
 apply powerRZ_lt.
@@ -404,39 +407,39 @@ rewrite <- Rmult_assoc.
 unfold B_powerRZ in |- *.
 rewrite Rmult_assoc.
 rewrite Rmult_1l.
-replace (powerRZ (INR B) n * powerRZ (INR B) (p_max yc n + p_max xc n - n))
- with (powerRZ (INR B) (p_max yc n + p_max xc n)). 
-replace (powerRZ (INR B) (p_max yc n + p_max xc n)) with
- (powerRZ (INR B) (p_max yc n) * powerRZ (INR B) (p_max xc n)). 
+replace (powerRZ (INR B) n * powerRZ (INR B) (p_max yc msdy n + p_max xc msdx n - n))
+ with (powerRZ (INR B) (p_max yc msdy n + p_max xc msdx n)). 
+replace (powerRZ (INR B) (p_max yc msdy n + p_max xc msdx n)) with
+ (powerRZ (INR B) (p_max yc msdy n) * powerRZ (INR B) (p_max xc msdx n)). 
 rewrite Rmult_mult_mult.
 replace
- (1 + IZR (Z.abs (xc (p_max yc n) * yc (p_max xc n))) +
-  IZR (Z.abs (xc (p_max yc n)) + Z.abs (yc (p_max xc n))))
+ (1 + IZR (Z.abs (xc (p_max yc msdy n) * yc (p_max xc msdx n))) +
+  IZR (Z.abs (xc (p_max yc msdy n)) + Z.abs (yc (p_max xc msdx n))))
  with
-  ((IZR (Z.abs (xc (p_max yc n))) + 1) * (IZR (Z.abs (yc (p_max xc n))) + 1)). 
+  ((IZR (Z.abs (xc (p_max yc msdy n))) + 1) * (IZR (Z.abs (yc (p_max xc msdx n))) + 1)). 
 replace
- (1 + IZR (Z.abs (xc (p_max yc n) * yc (p_max xc n))) -
-  IZR (Z.abs (xc (p_max yc n)) + Z.abs (yc (p_max xc n))))
+ (1 + IZR (Z.abs (xc (p_max yc msdy n) * yc (p_max xc msdx n))) -
+  IZR (Z.abs (xc (p_max yc msdy n)) + Z.abs (yc (p_max xc msdx n))))
  with
-  ((IZR (Z.abs (xc (p_max yc n))) - 1) * (IZR (Z.abs (yc (p_max xc n))) - 1)). 
+  ((IZR (Z.abs (xc (p_max yc msdy n))) - 1) * (IZR (Z.abs (yc (p_max xc msdx n))) - 1)). 
 
 apply Rle_mult_lt.
 cut (encadrement (absolue_reelc xc) (Rabs x)).
 unfold encadrement in |- *; intro.
-generalize (H4 (p_max yc n)); clear H4.
+generalize (H4 (p_max yc msdy n)); clear H4.
 unfold absolue_reelc in |- *.
 intro.
 rewrite Rmult_comm; auto.
 apply absolue_correct; auto.
 cut (encadrement (absolue_reelc yc) (Rabs y)).
 unfold encadrement in |- *; intro.
-generalize (H4 (p_max xc n)); clear H4.
+generalize (H4 (p_max xc msdx n)); clear H4.
 unfold absolue_reelc in |- *.
 rewrite Rmult_comm; auto.
 apply absolue_correct; auto.
 apply Rmult_lt_0_compat.
 apply powerRZ_lt; apply INR_B_non_nul.
-apply sg_Zsgn_abs with xc (p_max yc n).
+apply sg_Zsgn_abs with xc (p_max yc msdy n).
 apply absolue_correct; auto.
 auto.
 apply Rle_add_compatibility.
@@ -452,12 +455,12 @@ apply Rlt_le; apply IZR_lt.
 auto.
 rewrite Zabs_mult; rewrite mult_IZR; rewrite plus_IZR; ring.
 rewrite Zabs_mult; rewrite mult_IZR; rewrite plus_IZR; ring.
-replace (powerRZ (INR B) (p_max yc n) * powerRZ (INR B) (p_max xc n)) with
- (powerRZ (INR B) (p_max yc n + p_max xc n)); auto.
+replace (powerRZ (INR B) (p_max yc msdy n) * powerRZ (INR B) (p_max xc msdx n)) with
+ (powerRZ (INR B) (p_max yc msdy n + p_max xc msdx n)); auto.
 apply powerRZ_add.
 apply Rgt_not_eq; apply Rlt_gt; apply INR_B_non_nul.
-replace (powerRZ (INR B) n * powerRZ (INR B) (p_max yc n + p_max xc n - n))
- with (powerRZ (INR B) (n + (p_max yc n + p_max xc n - n))). 
+replace (powerRZ (INR B) n * powerRZ (INR B) (p_max yc msdy n + p_max xc msdx n - n))
+ with (powerRZ (INR B) (n + (p_max yc msdy n + p_max xc msdx n - n))). 
 apply powerRZ_trivial.
 ring.
 apply powerRZ_add.
@@ -474,12 +477,11 @@ rewrite <- plus_IZR; auto.
 
 (* 4eme partie *)
 
-clear X Y XC YC H1.
-pattern (xc (p_max yc n)) in |- *.
+pattern (xc (p_max yc msdy n)) in |- *.
 apply Zabs_ind_lt_O.
 3: auto.
 intros.
-pattern (yc (p_max xc n)) in |- *.
+pattern (yc (p_max xc msdx n)) in |- *.
 apply Zabs_ind_le_1.
 intro.
 replace (1 * / 2) with (2 * / 4).
@@ -514,25 +516,23 @@ apply le_pmax_n.
 field; apply Rgt_not_eq; lra.
 intro.
 clear H1.
-pattern (p_max yc n) in |- *.
-apply ind_gt_le with (msd xc).
-intro.
-apply Rle_trans with (4 * / B_powerRZ (Z.succ (Z.succ 0))).
-replace (4 * / B_powerRZ (Z.succ (Z.succ 0))) with
- (4 * INR B * / B_powerRZ (Z.succ (Z.succ (Z.succ 0)))).
+destruct (Z_lt_le_dec 1 (Z.abs (xc (p_max yc msdy n)))) as [H1 | H1].
+apply Rle_trans with (4 * / B_powerRZ 2).
+replace (4 * / B_powerRZ 2) with
+ (4 * INR B * / B_powerRZ 3).
 apply
  Rle_trans
   with
     (2 * INR B *
-     (B_powerRZ n * / B_powerRZ (p_max xc n + msd xc) +
-      B_powerRZ n * / B_powerRZ (p_max yc n + msd yc))).
+     (B_powerRZ n * / B_powerRZ (p_max xc msdx n + msd xc) +
+      B_powerRZ n * / B_powerRZ (p_max yc msdy n + msd yc))).
 replace
  (2 * INR B *
-  (B_powerRZ n * / B_powerRZ (p_max xc n + msd xc) +
-   B_powerRZ n * / B_powerRZ (p_max yc n + msd yc))) with
+  (B_powerRZ n * / B_powerRZ (p_max xc msdx n + msd xc) +
+   B_powerRZ n * / B_powerRZ (p_max yc msdy n + msd yc))) with
  (2 * INR B *
-  (B_powerRZ (p_max yc n - msd xc) + B_powerRZ (p_max xc n - msd yc)) *
-  / B_powerRZ (p_max yc n + p_max xc n - n)). 
+  (B_powerRZ (p_max yc msdy n - msd xc) + B_powerRZ (p_max xc msdx n - msd yc)) *
+  / B_powerRZ (p_max yc msdy n + p_max xc msdx n - n)). 
 apply Rmult_le_compat_r.
 apply Rlt_le; apply Rinv_0_lt_compat; unfold B_powerRZ in |- *;
  apply powerRZ_lt; apply INR_B_non_nul.
@@ -548,10 +548,10 @@ apply Rplus_plus_plus.
 apply Rinv_Rmult_bis.
 unfold B_powerRZ in |- *; apply powerRZ_lt; apply INR_B_non_nul.
 unfold B_powerRZ in |- *; apply powerRZ_lt; apply INR_B_non_nul.
-replace (B_powerRZ (p_max yc n - msd xc) * B_powerRZ (p_max xc n + msd xc))
- with (B_powerRZ (p_max yc n - msd xc + (p_max xc n + msd xc))).
-replace (B_powerRZ (p_max yc n + p_max xc n - n) * B_powerRZ n) with
- (B_powerRZ (p_max yc n + p_max xc n - n + n)).
+replace (B_powerRZ (p_max yc msdy n - msd xc) * B_powerRZ (p_max xc msdx n + msd xc))
+ with (B_powerRZ (p_max yc msdy n - msd xc + (p_max xc msdx n + msd xc))).
+replace (B_powerRZ (p_max yc msdy n + p_max xc msdx n - n) * B_powerRZ n) with
+ (B_powerRZ (p_max yc msdy n + p_max xc msdx n - n + n)).
 unfold B_powerRZ in |- *; apply powerRZ_trivial.
 ring.
 unfold B_powerRZ in |- *; apply powerRZ_add. 
@@ -561,10 +561,10 @@ apply Rgt_not_eq; apply Rlt_gt; apply INR_B_non_nul.
 apply Rinv_Rmult_bis.
 unfold B_powerRZ in |- *; apply powerRZ_lt; apply INR_B_non_nul.
 unfold B_powerRZ in |- *; apply powerRZ_lt; apply INR_B_non_nul.
-replace (B_powerRZ (p_max xc n - msd yc) * B_powerRZ (p_max yc n + msd yc))
- with (B_powerRZ (p_max xc n - msd yc + (p_max yc n + msd yc))).
-replace (B_powerRZ (p_max yc n + p_max xc n - n) * B_powerRZ n) with
- (B_powerRZ (p_max yc n + p_max xc n - n + n)).
+replace (B_powerRZ (p_max xc msdx n - msd yc) * B_powerRZ (p_max yc msdy n + msd yc))
+ with (B_powerRZ (p_max xc msdx n - msd yc + (p_max yc msdy n + msd yc))).
+replace (B_powerRZ (p_max yc msdy n + p_max xc msdx n - n) * B_powerRZ n) with
+ (B_powerRZ (p_max yc msdy n + p_max xc msdx n - n + n)).
 unfold B_powerRZ in |- *; apply powerRZ_trivial.
 ring.
 unfold B_powerRZ in |- *; apply powerRZ_add. 
@@ -577,16 +577,16 @@ apply Rmult_le_compat_l.
 apply Rmult_le_pos.
 lra.
 apply Rlt_le; apply INR_B_non_nul.
-replace (/ B_powerRZ (p_max xc n + msd xc)) with
- (B_powerRZ (- (p_max xc n + msd xc))).
-replace (/ B_powerRZ (p_max yc n + msd yc)) with
- (B_powerRZ (- (p_max yc n + msd yc))).
+replace (/ B_powerRZ (p_max xc msdx n + msd xc)) with
+ (B_powerRZ (- (p_max xc msdx n + msd xc))).
+replace (/ B_powerRZ (p_max yc msdy n + msd yc)) with
+ (B_powerRZ (- (p_max yc msdy n + msd yc))).
 replace (/ B_powerRZ (Z.succ (Z.succ (Z.succ 0)))) with
  (B_powerRZ (- Z.succ (Z.succ (Z.succ 0)))).
-replace (B_powerRZ n * B_powerRZ (- (p_max xc n + msd xc))) with
- (B_powerRZ (n + - (p_max xc n + msd xc))).
-replace (B_powerRZ n * B_powerRZ (- (p_max yc n + msd yc))) with
- (B_powerRZ (n + - (p_max yc n + msd yc))).
+replace (B_powerRZ n * B_powerRZ (- (p_max xc msdx n + msd xc))) with
+ (B_powerRZ (n + - (p_max xc msdx n + msd xc))).
+replace (B_powerRZ n * B_powerRZ (- (p_max yc msdy n + msd yc))) with
+ (B_powerRZ (n + - (p_max yc msdy n + msd yc))).
 RingReplace (2 * B_powerRZ (- Z.succ (Z.succ (Z.succ 0))))
  (B_powerRZ (- Z.succ (Z.succ (Z.succ 0))) +
   B_powerRZ (- Z.succ (Z.succ (Z.succ 0)))).
@@ -600,8 +600,8 @@ rewrite Zplus_comm.
 apply Zplus_le_reg_r with (Z.succ (Z.succ (Z.succ 0))).
 simpl in |- *.
 rewrite Zopp_plus_distr.
-apply Zplus_le_reg_l with (p_max xc n).
-RingReplace (p_max xc n + (- p_max xc n + - msd xc + n + 3))%Z
+apply Zplus_le_reg_l with (p_max xc msdx n).
+RingReplace (p_max xc msdx n + (- p_max xc msdx n + - msd xc + n + 3))%Z
  (n - msd xc + 3)%Z.
 rewrite <- Zplus_0_r_reverse.
 unfold p_max in |- *.
@@ -615,8 +615,8 @@ rewrite Zplus_comm.
 apply Zplus_le_reg_r with (Z.succ (Z.succ (Z.succ 0))).
 simpl in |- *.
 rewrite Zopp_plus_distr.
-apply Zplus_le_reg_l with (p_max yc n).
-RingReplace (p_max yc n + (- p_max yc n + - msd yc + n + 3))%Z
+apply Zplus_le_reg_l with (p_max yc msdy n).
+RingReplace (p_max yc msdy n + (- p_max yc msdy n + - msd yc + n + 3))%Z
  (n - msd yc + 3)%Z.
 rewrite <- Zplus_0_r_reverse.
 unfold p_max in |- *.
@@ -672,6 +672,7 @@ rewrite powerRZ_1; auto.
 symmetry  in |- *; apply powerRZ_add. 
 apply Rgt_not_eq; apply Rlt_gt; apply INR_B_non_nul.
 
+(* Marker. *)
 intro.
 apply Rle_trans with (3 * / 8).
 2: lra.
@@ -681,14 +682,14 @@ apply
 apply
  Rle_trans
   with
-    (/ B_powerRZ (p_max yc n + p_max xc n - n) +
-     2 * INR B * B_powerRZ n * / B_powerRZ (p_max yc n + msd yc)).
+    (/ B_powerRZ (p_max yc msdy n + p_max xc msdx n - n) +
+     2 * INR B * B_powerRZ n * / B_powerRZ (p_max yc msdy n + msd yc)).
 rewrite plus_IZR.
 replace
- (/ B_powerRZ (p_max yc n + p_max xc n - n) +
-  2 * INR B * B_powerRZ n * / B_powerRZ (p_max yc n + msd yc)) with
- ((1 + 2 * INR B * B_powerRZ (p_max xc n - msd yc)) *
-  / B_powerRZ (p_max yc n + p_max xc n - n)).
+ (/ B_powerRZ (p_max yc msdy n + p_max xc msdx n - n) +
+  2 * INR B * B_powerRZ n * / B_powerRZ (p_max yc msdy n + msd yc)) with
+ ((1 + 2 * INR B * B_powerRZ (p_max xc msdx n - msd yc)) *
+  / B_powerRZ (p_max yc msdy n + p_max xc msdx n - n)).
 apply Rmult_le_compat_r.
 apply Rlt_le; apply Rinv_0_lt_compat; unfold B_powerRZ in |- *;
  apply powerRZ_lt; apply INR_B_non_nul.
@@ -705,10 +706,10 @@ rewrite Rmult_assoc; symmetry  in |- *; rewrite Rmult_assoc;
 apply Rinv_Rmult_bis.
 unfold B_powerRZ in |- *; apply powerRZ_lt; apply INR_B_non_nul.
 unfold B_powerRZ in |- *; apply powerRZ_lt; apply INR_B_non_nul.
-replace (B_powerRZ n * B_powerRZ (p_max yc n + p_max xc n - n)) with
- (B_powerRZ (n + (p_max yc n + p_max xc n - n))).
-replace (B_powerRZ (p_max yc n + msd yc) * B_powerRZ (p_max xc n - msd yc))
- with (B_powerRZ (p_max yc n + msd yc + (p_max xc n - msd yc))).
+replace (B_powerRZ n * B_powerRZ (p_max yc msdy n + p_max xc msdx n - n)) with
+ (B_powerRZ (n + (p_max yc msdy n + p_max xc msdx n - n))).
+replace (B_powerRZ (p_max yc msdy n + msd yc) * B_powerRZ (p_max xc msdx n - msd yc))
+ with (B_powerRZ (p_max yc msdy n + msd yc + (p_max xc msdx n - msd yc))).
 unfold B_powerRZ in |- *; apply powerRZ_trivial; ring.
 unfold B_powerRZ in |- *; apply powerRZ_add.
 apply Rgt_not_eq; apply Rlt_gt; apply INR_B_non_nul.
@@ -749,7 +750,7 @@ do 4 rewrite S_INR; simpl in |- *; ring.
 apply Zplus_le_reg_r with (- msd yc)%Z.
 simpl in |- *.
 RingReplace (n + 3 + - msd yc)%Z (n - msd yc + 3)%Z.
-RingReplace (p_max yc n + msd yc + - msd yc)%Z (p_max yc n).
+RingReplace (p_max yc msdy n + msd yc + - msd yc)%Z (p_max yc msdy n).
 unfold p_max in |- *.
 apply Zle_max_l. 
 unfold B_powerRZ in |- *; apply powerRZ_add.
@@ -810,7 +811,7 @@ lra.
 (*derniere partie*)
 
 intro.
-pattern (p_max xc n) in |- *.
+pattern (p_max xc msdx n) in |- *.
 apply ind_gt_le with (msd yc).
 intro.
 apply Rle_trans with (4 * / B_powerRZ (Z.succ (Z.succ 0))).
@@ -820,15 +821,15 @@ apply
  Rle_trans
   with
     (2 * INR B *
-     (B_powerRZ n * / B_powerRZ (p_max xc n + msd xc) +
-      B_powerRZ n * / B_powerRZ (p_max yc n + msd yc))).
+     (B_powerRZ n * / B_powerRZ (p_max xc msdx n + msd xc) +
+      B_powerRZ n * / B_powerRZ (p_max yc msdy n + msd yc))).
 replace
  (2 * INR B *
-  (B_powerRZ n * / B_powerRZ (p_max xc n + msd xc) +
-   B_powerRZ n * / B_powerRZ (p_max yc n + msd yc))) with
+  (B_powerRZ n * / B_powerRZ (p_max xc msdx n + msd xc) +
+   B_powerRZ n * / B_powerRZ (p_max yc msdy n + msd yc))) with
  (2 * INR B *
-  (B_powerRZ (p_max yc n - msd xc) + B_powerRZ (p_max xc n - msd yc)) *
-  / B_powerRZ (p_max yc n + p_max xc n - n)). 
+  (B_powerRZ (p_max yc msdy n - msd xc) + B_powerRZ (p_max xc msdx n - msd yc)) *
+  / B_powerRZ (p_max yc msdy n + p_max xc msdx n - n)). 
 apply Rmult_le_compat_r.
 apply Rlt_le; apply Rinv_0_lt_compat; unfold B_powerRZ in |- *;
  apply powerRZ_lt; apply INR_B_non_nul.
@@ -844,10 +845,10 @@ apply Rplus_plus_plus.
 apply Rinv_Rmult_bis.
 unfold B_powerRZ in |- *; apply powerRZ_lt; apply INR_B_non_nul.
 unfold B_powerRZ in |- *; apply powerRZ_lt; apply INR_B_non_nul.
-replace (B_powerRZ (p_max yc n - msd xc) * B_powerRZ (p_max xc n + msd xc))
- with (B_powerRZ (p_max yc n - msd xc + (p_max xc n + msd xc))).
-replace (B_powerRZ (p_max yc n + p_max xc n - n) * B_powerRZ n) with
- (B_powerRZ (p_max yc n + p_max xc n - n + n)).
+replace (B_powerRZ (p_max yc msdy n - msd xc) * B_powerRZ (p_max xc msdx n + msd xc))
+ with (B_powerRZ (p_max yc msdy n - msd xc + (p_max xc msdx n + msd xc))).
+replace (B_powerRZ (p_max yc msdy n + p_max xc msdx n - n) * B_powerRZ n) with
+ (B_powerRZ (p_max yc msdy n + p_max xc msdx n - n + n)).
 unfold B_powerRZ in |- *; apply powerRZ_trivial.
 ring.
 unfold B_powerRZ in |- *; apply powerRZ_add. 
@@ -857,10 +858,10 @@ apply Rgt_not_eq; apply Rlt_gt; apply INR_B_non_nul.
 apply Rinv_Rmult_bis.
 unfold B_powerRZ in |- *; apply powerRZ_lt; apply INR_B_non_nul.
 unfold B_powerRZ in |- *; apply powerRZ_lt; apply INR_B_non_nul.
-replace (B_powerRZ (p_max xc n - msd yc) * B_powerRZ (p_max yc n + msd yc))
- with (B_powerRZ (p_max xc n - msd yc + (p_max yc n + msd yc))).
-replace (B_powerRZ (p_max yc n + p_max xc n - n) * B_powerRZ n) with
- (B_powerRZ (p_max yc n + p_max xc n - n + n)).
+replace (B_powerRZ (p_max xc msdx n - msd yc) * B_powerRZ (p_max yc msdy n + msd yc))
+ with (B_powerRZ (p_max xc msdx n - msd yc + (p_max yc msdy n + msd yc))).
+replace (B_powerRZ (p_max yc msdy n + p_max xc msdx n - n) * B_powerRZ n) with
+ (B_powerRZ (p_max yc msdy n + p_max xc msdx n - n + n)).
 unfold B_powerRZ in |- *; apply powerRZ_trivial.
 ring.
 unfold B_powerRZ in |- *; apply powerRZ_add. 
@@ -873,16 +874,16 @@ apply Rmult_le_compat_l.
 apply Rmult_le_pos.
 lra.
 apply Rlt_le; apply INR_B_non_nul.
-replace (/ B_powerRZ (p_max xc n + msd xc)) with
- (B_powerRZ (- (p_max xc n + msd xc))).
-replace (/ B_powerRZ (p_max yc n + msd yc)) with
- (B_powerRZ (- (p_max yc n + msd yc))).
+replace (/ B_powerRZ (p_max xc msdx n + msd xc)) with
+ (B_powerRZ (- (p_max xc msdx n + msd xc))).
+replace (/ B_powerRZ (p_max yc msdy n + msd yc)) with
+ (B_powerRZ (- (p_max yc msdy n + msd yc))).
 replace (/ B_powerRZ (Z.succ (Z.succ (Z.succ 0)))) with
  (B_powerRZ (- Z.succ (Z.succ (Z.succ 0)))).
-replace (B_powerRZ n * B_powerRZ (- (p_max xc n + msd xc))) with
- (B_powerRZ (n + - (p_max xc n + msd xc))).
-replace (B_powerRZ n * B_powerRZ (- (p_max yc n + msd yc))) with
- (B_powerRZ (n + - (p_max yc n + msd yc))).
+replace (B_powerRZ n * B_powerRZ (- (p_max xc msdx n + msd xc))) with
+ (B_powerRZ (n + - (p_max xc msdx n + msd xc))).
+replace (B_powerRZ n * B_powerRZ (- (p_max yc msdy n + msd yc))) with
+ (B_powerRZ (n + - (p_max yc msdy n + msd yc))).
 RingReplace (2 * B_powerRZ (- Z.succ (Z.succ (Z.succ 0))))
  (B_powerRZ (- Z.succ (Z.succ (Z.succ 0))) +
   B_powerRZ (- Z.succ (Z.succ (Z.succ 0)))).
@@ -896,8 +897,8 @@ rewrite Zplus_comm.
 apply Zplus_le_reg_r with (Z.succ (Z.succ (Z.succ 0))).
 simpl in |- *.
 rewrite Zopp_plus_distr.
-apply Zplus_le_reg_l with (p_max xc n).
-RingReplace (p_max xc n + (- p_max xc n + - msd xc + n + 3))%Z
+apply Zplus_le_reg_l with (p_max xc msdx n).
+RingReplace (p_max xc msdx n + (- p_max xc msdx n + - msd xc + n + 3))%Z
  (n - msd xc + 3)%Z.
 rewrite <- Zplus_0_r_reverse.
 unfold p_max in |- *.
@@ -911,8 +912,8 @@ rewrite Zplus_comm.
 apply Zplus_le_reg_r with (Z.succ (Z.succ (Z.succ 0))).
 simpl in |- *.
 rewrite Zopp_plus_distr.
-apply Zplus_le_reg_l with (p_max yc n).
-RingReplace (p_max yc n + (- p_max yc n + - msd yc + n + 3))%Z
+apply Zplus_le_reg_l with (p_max yc msdy n).
+RingReplace (p_max yc msdy n + (- p_max yc msdy n + - msd yc + n + 3))%Z
  (n - msd yc + 3)%Z.
 rewrite <- Zplus_0_r_reverse.
 unfold p_max in |- *.
@@ -977,14 +978,14 @@ apply
 apply
  Rle_trans
   with
-    (2 * INR B * B_powerRZ n * / B_powerRZ (p_max xc n + msd xc) +
-     / B_powerRZ (p_max yc n + p_max xc n - n)).
+    (2 * INR B * B_powerRZ n * / B_powerRZ (p_max xc msdx n + msd xc) +
+     / B_powerRZ (p_max yc msdy n + p_max xc msdx n - n)).
 rewrite plus_IZR.
 replace
- (2 * INR B * B_powerRZ n * / B_powerRZ (p_max xc n + msd xc) +
-  / B_powerRZ (p_max yc n + p_max xc n - n)) with
- ((2 * INR B * B_powerRZ (p_max yc n - msd xc) + 1) *
-  / B_powerRZ (p_max yc n + p_max xc n - n)).
+ (2 * INR B * B_powerRZ n * / B_powerRZ (p_max xc msdx n + msd xc) +
+  / B_powerRZ (p_max yc msdy n + p_max xc msdx n - n)) with
+ ((2 * INR B * B_powerRZ (p_max yc msdy n - msd xc) + 1) *
+  / B_powerRZ (p_max yc msdy n + p_max xc msdx n - n)).
 apply Rmult_le_compat_r.
 apply Rlt_le; apply Rinv_0_lt_compat; unfold B_powerRZ in |- *;
  apply powerRZ_lt; apply INR_B_non_nul.
@@ -1005,10 +1006,10 @@ rewrite Rmult_assoc; symmetry  in |- *; rewrite Rmult_assoc;
 apply Rinv_Rmult_bis.
 unfold B_powerRZ in |- *; apply powerRZ_lt; apply INR_B_non_nul.
 unfold B_powerRZ in |- *; apply powerRZ_lt; apply INR_B_non_nul.
-replace (B_powerRZ (p_max yc n + p_max xc n - n) * B_powerRZ n) with
- (B_powerRZ (p_max yc n + p_max xc n - n + n)).
-replace (B_powerRZ (p_max yc n - msd xc) * B_powerRZ (p_max xc n + msd xc))
- with (B_powerRZ (p_max yc n - msd xc + (p_max xc n + msd xc))).
+replace (B_powerRZ (p_max yc msdy n + p_max xc msdx n - n) * B_powerRZ n) with
+ (B_powerRZ (p_max yc msdy n + p_max xc msdx n - n + n)).
+replace (B_powerRZ (p_max yc msdy n - msd xc) * B_powerRZ (p_max xc msdx n + msd xc))
+ with (B_powerRZ (p_max yc msdy n - msd xc + (p_max xc msdx n + msd xc))).
 unfold B_powerRZ in |- *; apply powerRZ_trivial; ring.
 unfold B_powerRZ in |- *; apply powerRZ_add.
 apply Rgt_not_eq; apply Rlt_gt; apply INR_B_non_nul.
@@ -1050,7 +1051,7 @@ do 4 rewrite S_INR; simpl in |- *; ring.
 apply Zplus_le_reg_r with (- msd xc)%Z.
 simpl in |- *.
 RingReplace (n + 3 + - msd xc)%Z (n - msd xc + 3)%Z.
-RingReplace (p_max xc n + msd xc + - msd xc)%Z (p_max xc n).
+RingReplace (p_max xc msdx n + msd xc + - msd xc)%Z (p_max xc msdx n).
 unfold p_max in |- *.
 apply Zle_max_l. 
 unfold B_powerRZ in |- *; apply powerRZ_add.

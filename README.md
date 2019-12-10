@@ -15,13 +15,16 @@ Logic and  Algebraic Programming (Vol. 64, Issue 1, July 2005):
 The initial development by J. Créci, Maintenance was long ensured by H.
 Herbelin.
 
+Elie Ancelin and Nicolas Magaud added contributions to this development by
+providing proofs for the inverse function.
+
 ## Unsafe!
 
-In the current state of the development, many basic functions are taken as
-abstract parameters and their properties described as axioms.  One of these
-axioms is clearly inconsistent with the definition of real numbers.  Proofs
-should be fixed before this contribution can be trusted for re-use in any
-other development.
+Version prior to December 10, 2019 contain axioms that are clearly
+inconsistent.  This concerns all releases up to v8.10.0.  Ongoing work
+intends to make a new release compatible with coq 8.10 that is axiom free.
+Backporting to older version of coq will probably not happen, unless
+popular demand is strong enough.
 
 Plans for fixing are as follows:
 
