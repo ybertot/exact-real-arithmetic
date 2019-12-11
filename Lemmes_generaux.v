@@ -370,12 +370,88 @@ assert (xc 2%Z <> 0%Z).
 lia.
 Qed.
 
-Lemma msd_prop2 (x : R) (xc : Reelc) :
-  x <> 0 -> encadrement xc x -> 
-  msd_prop xc (- (Int_part (Rlog (Rabs x) (INR B)) + 1))%Z.
+Definition pre_msd (x : R) := (- (Int_part (Rlog (Rabs x) (INR B))))%Z.
+
+Definition msd (x : R) (xc : Reelc) :=
+  if Z.eq_dec (Z.abs (xc (pre_msd x))) 1 then
+    (pre_msd x + 1)%Z
+  else
+    pre_msd x.
+
+Lemma trial2 : B = 10%nat -> -2 < Rlog (1/99) (INR B) < -1.
 Proof.
+intros B10.
+assert (ln10pos : 0 < ln 10).
+  now rewrite <- ln_1; apply ln_increasing; lra.
+unfold Rlog, Rdiv; rewrite Rmult_1_l.
+replace (INR B) with 10 by (rewrite B10; simpl; lra).
+replace (-2) with (ln(/100) * /ln 10).
+  replace (-1) with (ln(/10) * /ln 10).
+    split.
+      apply Rmult_lt_compat_r.
+        now apply Rinv_0_lt_compat.
+      now apply ln_increasing; lra.
+    apply Rmult_lt_compat_r.
+      now apply Rinv_0_lt_compat.
+    now apply ln_increasing; lra.
+  rewrite ln_Rinv;[ | lra].
+  now field; apply Rgt_not_eq.
+replace 100 with (10 * 10) by ring.
+rewrite ln_Rinv; try lra.
+rewrite ln_mult; try lra.
+now field; apply Rgt_not_eq.
+Qed.
+
+Lemma trial3 : B = 10%nat -> pre_msd (1 /99) = 2%Z.
+Proof.
+intros B10.
+unfold pre_msd, Int_part.
+assert (main : (-2 + 1)%Z = up (Rlog (Rabs (1 /99)) (INR B))).
+  apply up_tech.
+    now destruct (trial2 B10); rewrite Rabs_pos_eq; lra.
+  rewrite plus_IZR, Rabs_pos_eq; destruct (trial2 B10); lra.
+lia.
+Qed.
+
+Lemma trial4 xc : B = 10%nat -> encadrement xc (1 / 99) ->
+  msd_prop xc (msd (1 / 99) xc).
+Proof.
+intros B10 enc; assert (tmp := trial xc enc B10).
+unfold msd.
+destruct (Z.eq_dec (Z.abs (xc (pre_msd (1/99)))) 1) as [eq1 | neq1].
+  destruct tmp as [[any abs] | it].
+    now revert eq1 abs; rewrite (trial3 B10); intros tmp; rewrite tmp; lia.
+  now rewrite (trial3 B10).
+assert (xn0 : 1 / 99 <> 0) by lra.
+assert (vv := powerRZ_Int_part_Rabs2 _ xn0).
+revert vv; rewrite <-(Z.opp_involutive (Int_part _)).
+fold (pre_msd (1 / 99)); rewrite (trial3 B10) in neq1 |- *.
+replace (- (2) + Z.succ 0)%Z with (-1)%Z by ring.
+intros fact.
+destruct tmp as [ it | abs]; auto.
+destruct abs as [abs1 _].
+assert (abs2 := abs1 2%Z eq_refl).
+destruct (enc 2%Z) as [enc1 enc2].
+assert (abp := Z.abs_nonneg (xc 2%Z)).  
+assert (ab0 : Z.abs (xc 2%Z) = 0%Z) by lia.
+rewrite Z.abs_0_iff in ab0.
+unfold B_powerRZ in enc2; rewrite ab0, B10 in enc2; simpl in enc2; lra.
+Qed.
+
+Lemma msd_prop2 (x : R) (xc : Reelc) :
+  x <> 0 -> encadrement xc x ->
+  msd_prop xc (msd x xc).
+Proof.
+assert (INR B <> 0).
+  now apply Rgt_not_eq, INR_B_non_nul.
+assert (Bpgt0 : forall k, 0 < B_powerRZ k).
+  now intros; apply powerRZ_lt, INR_B_non_nul.
 intros xn0 xcx.
-case (Rle_lt_dec 0 x).
+assert (tmp := Rdichotomy _ _ xn0); rewrite or_comm in tmp.
+destruct tmp as [xneg | xpos].
+  assert (xcp : forall k, (0 <= xc k)%Z).
+    intros k; destruct (Z.lt_total (xc k) 0) as [neg | [at0 | pos]]; try lia.
+    apply Z.lt_gt, (sg_Zsgn_2 x) in neg; auto; lra.
   split.
     intros n nl; destruct (xcx n) as [enc1 enc2].
     rewrite Z.abs_le; split; apply le_IZR.
@@ -383,38 +459,74 @@ case (Rle_lt_dec 0 x).
       enough (0 <= IZR (xc n) + 1) by lra.
       apply Rlt_le.
       apply Rle_lt_trans with (2 := enc2).
-      apply Rmult_le_pos; auto.
-      now apply powerRZ_le; apply INR_B_non_nul.
-    enough (IZR (xc n) - 1 <= 0) by lra.
-    rewrite <- minus_IZR; apply IZR_le.
-    apply Zlt_succ_le; cbv [Z.succ Z.add].
-    apply lt_IZR; rewrite minus_IZR.
-    apply Rlt_trans with (1 := enc1).
-    apply Rmult_lt_reg_r with (/B_powerRZ n).
-      apply Rinv_0_lt_compat.
-      now apply powerRZ_lt; apply INR_B_non_nul.
-    rewrite Rmult_assoc.
-    rewrite Rinv_r;[|apply not_eq_sym, Rlt_not_eq, powerRZ_lt, INR_B_non_nul ].
-    rewrite Rmult_1_l, Rmult_1_r.
-    assert (xrabs : x = Rabs x).
-      now rewrite Rabs_pos_eq; auto.
-    rewrite xrabs.    
-    unfold B_powerRZ; rewrite Rinv_powerRZ;
+      now apply Rmult_le_pos;[lra | apply Rlt_le; auto].
+    assert (main : (n < pre_msd x)%Z -> IZR (xc n) <= 1).
+      intros strong.
+      enough (IZR (xc n) - 1 <= 0) by lra.
+      rewrite <- minus_IZR; apply IZR_le.
+      apply Zlt_succ_le; cbv [Z.succ Z.add].
+      apply lt_IZR; rewrite minus_IZR.
+      apply Rlt_le_trans with (1 := enc1).
+      apply Rmult_le_reg_r with (/B_powerRZ n).
+        apply Rinv_0_lt_compat.
+        now apply powerRZ_lt; apply INR_B_non_nul.
+      rewrite Rmult_assoc.
+      rewrite Rinv_r;[|apply not_eq_sym, Rlt_not_eq, Bpgt0 ].
+      rewrite Rmult_1_l, Rmult_1_r.
+      assert (xrabs : x = Rabs x).
+        now rewrite Rabs_pos_eq; lra.
+      rewrite xrabs.    
+      unfold B_powerRZ; rewrite Rinv_powerRZ;
       [|apply Rgt_not_eq, INR_B_non_nul].
-    apply Rlt_trans with (1 := powerRZ_Int_part_Rabs2 _ xn0).
-    apply powerRZ_croissance.
-      replace 1 with (INR 1) by reflexivity; apply lt_INR.
-      apply le_trans with (2 := B_sup_4); lia.
-    rewrite Z.opp_lt_mono, Z.opp_involutive; assumption.
-  set (n := (- _)%Z).
-  destruct (xcx n) as [enc1 enc2].
-
-  apply Z.lt_gt, lt_IZR.
-  rewrite abs_IZR.
-  assert (tmp := powerRZ_Int_part_Rabs _ xn0).  
-  revert tmp; rewrite Rabs_pos_eq; auto.
-  assert (powerRZ (INR B) ((Int_part (Rlog x (INR B))) - 1) < x / INR B).
-    admit.
+      assert (strong' : (n <= pre_msd x - 1)%Z) by lia.
+      apply Rle_trans with (1 := (Rlt_le _ _ (powerRZ_Int_part_Rabs2 _ xn0))).
+      rewrite Z.le_lteq in strong'; destruct strong' as [it | valn].
+        apply Rlt_le, powerRZ_croissance.
+          replace 1 with (INR 1) by reflexivity; apply lt_INR.
+          now apply le_trans with (2 := B_sup_4); lia.
+        rewrite Z.opp_lt_mono, Z.opp_involutive.
+        rewrite Z.opp_add_distr; fold (pre_msd x); exact it.
+      now apply Req_le, f_equal; rewrite valn; unfold pre_msd; ring.
+    revert nl; unfold msd; destruct (Z.eq_dec _ _) as [eq1 | neq1].
+      rewrite Z.abs_eq in eq1; auto.
+      intros cnd; assert (cnd' : (n < Z.succ (pre_msd x))%Z) by lia.
+      rewrite Z.lt_succ_r, Z.le_lteq in cnd'.
+      destruct cnd' as [usem | useq]; cycle 1.
+        now rewrite useq, eq1; lra.
+      now apply main.
+    exact main.
+  unfold msd; destruct (Z.eq_dec _ _) as [xcl1 | xcln1]. 
+    destruct (xcx (pre_msd x)) as [enc1 enc2].
+    rewrite !Z.abs_eq in xcl1 |- *; auto.
+      destruct (xcx (pre_msd x + 1)%Z) as [enc3 enc4].
+      enough (2 < xc (pre_msd x + 1) + 1)%Z by lia.
+      apply lt_IZR; rewrite plus_IZR.
+      apply Rle_lt_trans with (2 := enc4).
+      assert (tmp1 : B_powerRZ (pre_msd x + 1) =
+                 INR B * B_powerRZ (pre_msd x)).
+        unfold B_powerRZ; rewrite powerRZ_add, Rmult_comm; auto.
+        now rewrite powerRZ_1.
+      rewrite tmp1, <- Rmult_assoc, (Rmult_comm x), Rmult_assoc.
+      assert (tmp2 : 2 = INR B * (2 / INR B)) by (field; auto).
+      rewrite tmp2; clear tmp2.
+      apply Rmult_le_compat_l;[apply Rlt_le, INR_B_non_nul | ].
+      rewrite Z.lt_le_pred, Z.le_lteq in usem; destruct usem as [usem | atm1].
+        now apply main; lia.
+      destruct (xcx (pre_msd x)) as [enc3 enc4].
+        enough (IZR (xc n) - 1 <= 0) by lra.    
+        rewrite <- minus_IZR; apply IZR_le.
+      rewrite <- Z.lt_succ_r; change (Z.succ 0) with 1%Z.
+      apply lt_IZR; rewrite minus_IZR.
+      apply Rlt_le_trans with (1 := enc1).
+      assert (pmq : (n + 1 = pre_msd x)%Z) by lia.
+      rewrite <- (Z.add_simpl_r n 1), pmq.
+      replace (pre_msd x - 1)%Z with (pre_msd x + -(1))%Z by ring.
+      unfold B_powerRZ; rewrite powerRZ_add; auto.
+      rewrite (powerRZ_Zopp (INR B) (1)), <- Rmult_assoc; auto.
+      apply Rmult_le_compat_r;[apply Rlt_le, Bpgt0 |].
+      rewrite powerRZ_1; apply Rlt_le; apply Rlt_le_trans with (1 := enc4).
+      rewrite eq1; replace (1 + 1) with (INR 2) by (simpl; lra).
+      now apply le_INR; assert (tmp := B_sup_4); lia.
 
 Lemma msd_ax2 :
  forall (x : R) (xc yc : Reelc) (msdx : Z) (msdy : option Z) (n : Z),
