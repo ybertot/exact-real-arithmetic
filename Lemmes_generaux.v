@@ -303,39 +303,72 @@ Qed.
 
 Lemma trial xc : encadrement xc (1/99) ->
   B = 10%nat ->
-  msd_prop xc 2.
+  msd_prop xc 2 \/ msd_prop xc 3.
 Proof.
 intros enc.
 intros B10.
+case (Z.eq_dec (xc 2%Z) 1).
+  right.
+  split.
+    intros n; destruct (enc n) as [enc1 enc2].
+    intros n3.
+    rewrite Z.abs_le; split; apply le_IZR.
+      rewrite opp_IZR; enough (0 <= IZR (xc n) + 1) by lra.
+      apply Rlt_le; apply Rle_lt_trans with (2 := enc2).
+      enough (0 <= B_powerRZ n) by lra.
+      now apply powerRZ_le, INR_B_non_nul.
+    apply IZR_le, Zlt_succ_le; unfold Z.succ.
+    enough (xc n - 1 < 1)%Z by lia.
+    apply lt_IZR; rewrite minus_IZR.
+    destruct (Z.eq_dec n 2) as [nis2 | nn2].
+      rewrite nis2, e; lra.
+    assert (n1 : (n < 2)%Z) by lia.
+    apply Rlt_trans with (1 := enc1).
+    rewrite <- Z.le_succ_l in n3.
+    apply Rle_lt_trans with (1/99 * 10).
+      apply Rmult_le_compat_l;[lra | ].
+      replace 10 with (B_powerRZ 1);
+        [|unfold B_powerRZ; rewrite B10;simpl; lra].
+      apply Rle_powerRZ;[ | lia].
+      rewrite B10; simpl; lra.
+    lra.
+  destruct (enc 3%Z) as [enc1 enc2].
+  assert (step : 1/99 * B_powerRZ 3 - 1 < IZR (xc 3%Z)) by lra.
+  assert (0 <= xc 3)%Z.
+    apply le_IZR.
+    apply Rlt_le; apply Rle_lt_trans with (2 := step).
+    unfold B_powerRZ; rewrite B10; simpl; lra.
+    rewrite Z.abs_eq; auto.
+    apply Z.lt_gt, lt_IZR; apply Rle_lt_trans with (2:= step).
+  unfold B_powerRZ; rewrite B10; simpl; lra.
+intros xc2n1; left.
 split.
-  intros n; destruct (enc n) as [enc1 enc2].
-  intros n2.
-  rewrite Z.abs_le; split; apply le_IZR.
+  intros n n2; destruct (enc n) as [enc1 enc2].
+    rewrite Z.abs_le; split; apply le_IZR.
     rewrite opp_IZR; enough (0 <= IZR (xc n) + 1) by lra.
     apply Rlt_le; apply Rle_lt_trans with (2 := enc2).
-    enough (0 <= B_powerRZ n) by lra.
-    now apply powerRZ_le, INR_B_non_nul.
+      enough (0 <= B_powerRZ n) by lra.
+      now apply powerRZ_le, INR_B_non_nul.
   apply IZR_le, Zlt_succ_le; unfold Z.succ.
   enough (xc n - 1 < 1)%Z by lia.
   apply lt_IZR; rewrite minus_IZR.
   apply Rlt_trans with (1 := enc1).
-  rewrite <- Z.le_succ_l in n2.
-  apply Zle_lt_or_eq in n2; destruct n2 as [n1' | n1].
-  assert (n1 : (n < 1)%Z) by lia.
-    apply Rlt_trans with (1/10 * B_powerRZ n).
-      apply Rmult_lt_compat_r;[|lra].
-      now apply powerRZ_lt, INR_B_non_nul.
-    replace 10 with (B_powerRZ 1).
-      unfold Rdiv, B_powerRZ; rewrite Rinv_powerRZ, Rmult_1_l.
-        rewrite <- powerRZ_add.
-          rewrite <- (powerRZ_O (INR B)).
-          apply powerRZ_croissance.
-            rewrite B10; simpl; lra.
-          lia.
-        now apply Rgt_not_eq, INR_B_non_nul.
-      now apply Rgt_not_eq, INR_B_non_nul.
+  apply Rle_lt_trans with (1 / 99 * B_powerRZ 1).
+     apply Rmult_le_compat_l;[lra |].
+     apply Rle_powerRZ;[rewrite B10; simpl; lra | lia].
   unfold B_powerRZ; rewrite B10; simpl; lra.
-  assert 
+destruct (enc 2%Z) as [enc1 enc2].
+assert (step : 1/99 * B_powerRZ 2 - 1 < IZR(xc 2%Z)) by lra.
+assert (0 < 1/99 * B_powerRZ 2 - 1).
+  unfold B_powerRZ; rewrite B10; simpl; lra.
+assert (0 <= xc 2)%Z.
+  apply le_IZR; lra.
+rewrite Z.abs_eq; try lia.
+assert (xc 2%Z <> 0%Z).
+  intros abs; revert enc2; rewrite abs, Rplus_0_l.
+  unfold B_powerRZ; rewrite B10; simpl; lra.
+lia.
+Qed.
 
 Lemma msd_prop2 (x : R) (xc : Reelc) :
   x <> 0 -> encadrement xc x -> 
