@@ -39,43 +39,15 @@ Axiom msd_c :
     forall xc : Reelc,
     (forall n : Z, (n < msd xc)%Z -> (Z.abs (xc n) <= 1)%Z) /\
     (Z.abs (xc (msd xc)) > 1)%Z. 
-
-
-Lemma msd_ax1 :
- forall (xc yc : Reelc) (n : Z),
- (1 < Z.abs (xc (p_max yc n)))%Z -> (msd xc <= p_max yc n)%Z.
-
-Proof.
-intros.
-apply Z.ge_le.
-apply Znot_lt_ge.
-cut
- (~ ((Z.abs (xc (p_max yc n)) <= 1)%Z /\ (Z.abs (xc (msd xc)) > 1)%Z) ->
-  ~ (p_max yc n < msd xc)%Z).
-intros.
-apply H0.
-apply or_not_and.
-left.
-apply Zlt_not_le; auto.
-generalize (msd_c xc); intuition.
-Qed.
-
-Lemma msd_ax3 :
- forall (xc yc : Reelc) (n : Z),
- (p_max yc n < msd xc)%Z -> (Z.abs (xc (p_max yc n)) <= 1)%Z.
-
-Proof.
-intros.
-apply Z.ge_le.
-apply Znot_lt_ge.
-cut (~ (msd xc <= p_max yc n)%Z -> ~ (1 < Z.abs (xc (p_max yc n)))%Z).
-intro.
-apply H0.
-apply Zlt_not_le; auto.
-cut ((1 < Z.abs (xc (p_max yc n)))%Z -> (msd xc <= p_max yc n)%Z);
- [ tauto | apply msd_ax1 ].
-Qed.
 *)
+
+Definition pre_msd (x : R) := (- (Int_part (Rlog (Rabs x) (INR B))))%Z.
+
+Definition msd (x : R) (xc : Reelc) :=
+  if Z.eq_dec (Z.abs (xc (pre_msd x))) 1 then
+    (pre_msd x + 1)%Z
+  else
+    pre_msd x.
 
 Lemma B_INR_1 : forall B, (4<=B)%nat -> 1 <= INR B.
 Proof.
@@ -156,7 +128,6 @@ Lemma msd_prop1 :
  msd_prop xc msdx ->
  {msdx = (- Int_part (Rlog (Rabs x) (INR B)))%Z} +
  {msdx = (- Int_part (Rlog (Rabs x) (INR B)) + 1)%Z}.  
-
 Proof.
 intros x xc msdx H H0 msd_p.
 cut
@@ -301,6 +272,25 @@ apply Z.lt_gt; auto with zarith.
 apply powerRZ_O.
 Qed.
 
+Lemma msd_prop_unique x xc v1 v2 :
+  x <> 0 ->
+  encadrement xc x ->
+  msd_prop xc v1 -> msd_prop xc v2 -> v1 = v2.
+Proof.
+intros xn0 xcx mp1 mp2.
+generalize mp1; intros mp1'; generalize mp2; intros mp2'.
+destruct mp1 as [p1 p2]; destruct mp2 as [p3 p4].
+destruct (msd_prop1 x xc v1 xn0 xcx mp1') as [atl | atl1].
+  destruct (msd_prop1 x xc v2 xn0 xcx mp2') as [atl' | atl1'].
+    now rewrite atl, atl'.
+  enough (Z.abs (xc v1) <= 1)%Z by lia.
+  now apply p3; lia.
+destruct (msd_prop1 x xc v2 xn0 xcx mp2') as [atl' | atl1'].
+  enough (Z.abs (xc v2) <= 1)%Z by lia.
+  now apply p1; lia.
+now rewrite atl1, atl1'.
+Qed.
+
 Lemma trial xc : encadrement xc (1/99) ->
   B = 10%nat ->
   msd_prop xc 2 \/ msd_prop xc 3.
@@ -369,14 +359,6 @@ assert (xc 2%Z <> 0%Z).
   unfold B_powerRZ; rewrite B10; simpl; lra.
 lia.
 Qed.
-
-Definition pre_msd (x : R) := (- (Int_part (Rlog (Rabs x) (INR B))))%Z.
-
-Definition msd (x : R) (xc : Reelc) :=
-  if Z.eq_dec (Z.abs (xc (pre_msd x))) 1 then
-    (pre_msd x + 1)%Z
-  else
-    pre_msd x.
 
 Lemma trial2 : B = 10%nat -> -2 < Rlog (1/99) (INR B) < -1.
 Proof.
@@ -565,6 +547,19 @@ split.
 now revert oppP2; rewrite Z.abs_opp.
 Qed.
 
+Lemma msd_ax1 :
+ forall x (xc : Reelc) k,
+ x <> 0 ->
+ encadrement xc x ->
+ (1 < Z.abs (xc k))%Z -> (msd x xc <= k)%Z.
+Proof.
+intros x xc k xn0 xcx bnd.
+destruct (msd_prop2 x xc xn0 xcx) as [it _].
+destruct (Z_le_gt_dec (msd x xc) k) as [found | abs]; auto.
+enough (Z.abs (xc k) <= 1)%Z by lia.
+apply it; lia.
+Qed.
+
 Lemma msd_ax2 :
  forall (x : R) (xc yc : Reelc) (msdx : Z) (msdy : option Z) (n : Z),
  x <> 0 ->
@@ -685,6 +680,19 @@ intro; absurd (Zneg p >= 0)%Z; auto with *.
 omega.
 Qed.
 
+(* TODO: check whether this lemma can be removed, as it is a direct
+  application of msd_prop2. *)
+Lemma msd_ax3 :
+ forall (x : R)(xc : Reelc) k,
+ x <> 0 ->
+ encadrement xc x ->
+ (k < msd x xc)%Z -> (Z.abs (xc k) <= 1)%Z.
+
+Proof.
+intros x xc k xn0 xcx km.
+destruct (msd_prop2 x xc xn0 xcx) as [it _].
+now apply it.
+Qed.
 
 Lemma encadrement_bis_prop1 :
  forall (p n : Z) (x : R),
