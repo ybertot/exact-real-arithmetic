@@ -446,12 +446,13 @@ assert (INR B <> 0).
   now apply Rgt_not_eq, INR_B_non_nul.
 assert (Bpgt0 : forall k, 0 < B_powerRZ k).
   now intros; apply powerRZ_lt, INR_B_non_nul.
-intros xn0 xcx.
-assert (tmp := Rdichotomy _ _ xn0); rewrite or_comm in tmp.
-destruct tmp as [xneg | xpos].
+revert x xc.
+assert (main : forall x xc, x <> 0 -> x > 0 -> encadrement xc x ->
+           msd_prop xc (msd x xc)).
+  intros x xc xn0 xpos xcx.
   assert (xcp : forall k, (0 <= xc k)%Z).
     intros k; destruct (Z.lt_total (xc k) 0) as [neg | [at0 | pos]]; try lia.
-    apply Z.lt_gt, (sg_Zsgn_2 x) in neg; auto; lra.
+    now apply Z.lt_gt, (sg_Zsgn_2 x) in neg; auto; lra.
   split.
     intros n nl; destruct (xcx n) as [enc1 enc2].
     rewrite Z.abs_le; split; apply le_IZR.
@@ -533,12 +534,35 @@ destruct tmp as [xneg | xpos].
     now apply powerRZ_le, INR_B_non_nul.
   rewrite <- powerRZ_add in tmp;[|apply Rgt_not_eq, INR_B_non_nul].
   rewrite Z.add_opp_diag_r, powerRZ_O in tmp.
-  rewrite <- (Rabs_pos_eq _ (Rlt_le _ _ xneg)) in tmp at 2.
+  rewrite <- (Rabs_pos_eq _ (Rlt_le _ _ xpos)) in tmp at 2.
   fold (pre_msd x) in tmp.
   assert (tmp2 := Rle_lt_trans _ _ _ tmp enc2).
   assert (tmp3 : 0 < IZR (xc (pre_msd x))) by lra.
   apply lt_IZR in tmp3.
   rewrite Z.abs_eq; auto; lia.
+intros x xc xn0 xcx.
+assert (tmp := Rdichotomy _ _ xn0); rewrite or_comm in tmp.
+destruct tmp as [xpos | xneg].
+  now apply main.
+assert (msd_prop (fun z => - (xc z))%Z
+                      (msd (- (x)) (fun z => - (xc z))%Z)) as [oppP1 oppP2].
+  apply main; auto; try lra.
+  intros n; destruct (xcx n) as [enc1 enc2].
+  split.
+    rewrite opp_IZR; replace (- IZR (xc n) - 1) with (- (IZR (xc n) + 1))
+      by ring.
+    now rewrite <- Ropp_mult_distr_l; apply Ropp_lt_contravar.
+  rewrite opp_IZR; replace (- (IZR (xc n)) + 1) with (- (IZR (xc n) - 1))
+    by ring.
+  now rewrite <- Ropp_mult_distr_l; apply Ropp_lt_contravar.
+assert (pre_msd_same : pre_msd (-x) = pre_msd x).
+  now unfold pre_msd; rewrite Rabs_Ropp.
+assert (msd_same : msd (- x) (fun z => -xc z)%Z = msd x xc).
+  now unfold msd; rewrite pre_msd_same, Z.abs_opp.
+rewrite <- msd_same.
+split.
+  now intros n nlt; generalize (oppP1 n nlt); rewrite Z.abs_opp.
+now revert oppP2; rewrite Z.abs_opp.
 Qed.
 
 Lemma msd_ax2 :
