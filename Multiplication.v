@@ -20,6 +20,16 @@ Require Import powerRZ_complements.
 Require Import sg.
 Require Import Rlog.
 
+Lemma omsd_prop1 x xc msdx v :
+  x <> 0 -> encadrement xc x -> omsd_prop xc msdx -> msdx = Some v ->
+  v = msd x xc.
+Proof.
+intros xn0 xcx op eqv.
+revert op; rewrite eqv; unfold omsd_prop; intros msdp.
+apply (msd_prop_unique x xc v (msd x xc) xn0 xcx msdp).
+now apply msd_prop2.
+Qed.
+
 Lemma multiplication_correct :
  forall (X Y : R) (XC YC : Reelc) (msdx msdy : option Z),
  encadrement XC X ->
@@ -606,7 +616,15 @@ RingReplace (p_max xc msdx n + (- p_max xc msdx n + - msd x xc + n + 3))%Z
  (n - msd x xc + 3)%Z.
 rewrite <- Zplus_0_r_reverse.
 unfold p_max in |- *.
+assert (tmp := fun v => omsd_prop1 x xc msdx v H01 H0 mpx).
+destruct msdx as [v | ].
+  rewrite (tmp v eq_refl).
 apply Zle_max_l. 
+assert (compute_P :
+          forall k,
+          (msd x xc <= compute_msd_N xc n 0 (Z.quot2 (n + 2))
+           (Z.to_nat (n + 3 - Z.quot2 n)))%Z).
+
 unfold B_powerRZ in |- *; apply Rle_powerRZ.
 apply Rlt_le; apply Rlt_le_trans with (INR 4).
 do 4 rewrite S_INR. 
