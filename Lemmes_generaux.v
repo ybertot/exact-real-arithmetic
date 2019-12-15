@@ -18,6 +18,46 @@ Require Import Lemmes.
 Require Import Rind_complements.
 Require Import Classical_Prop.
 
+Lemma ZlogBr_correct (x : Z)(n: nat) (candidate : Z) :
+  (Z.of_nat B ^ (candidate - 1) <= x)%Z ->
+  (x < Z.of_nat B ^ (candidate + Z.of_nat n))%Z ->
+  (Z.of_nat B ^ (ZlogBr x n candidate) <= x < 
+   Z.of_nat B ^ ((ZlogBr x n candidate) + 1))%Z.
+Proof.
+revert candidate.
+induction n as [ | p].
+  now intros c; simpl; rewrite Z.add_0_r, Z.sub_add; intros; split; auto.
+intros c.
+rewrite Nat2Z.inj_succ; simpl ZlogBr.
+destruct (Z.ltb_spec x (Z.of_nat B ^ c)%Z) as [v1 | v2].
+  intros it _; split; auto.
+  now rewrite Z.sub_add; auto.
+replace (c + (Z.succ (Z.of_nat p)))%Z with ((c + 1) + Z.of_nat p)%Z by ring.
+intros _ it; apply IHp; auto.
+now rewrite Z.add_simpl_r; auto.
+Qed.
+
+Lemma ZlogB_correct (x : Z) :
+  (0 < x)%Z -> (Z.of_nat B ^ ZlogB x <= x < Z.of_nat B ^ (ZlogB x + 1))%Z.
+Proof.
+intros xgt0; assert (tmp := ZlogBr x (Z.to_nat x) 1).
+apply ZlogBr_correct.
+  now simpl; apply Z.lt_le_incl.
+rewrite Z.add_0_l, Z2Nat.id; cycle 1.
+  now apply Z.lt_le_incl.
+replace x with ((x - 1) + 1)%Z by ring.
+assert (xm1ge0 : (0 <= x - 1)%Z) by lia.
+  generalize xm1ge0; apply
+  (natlike_ind (fun u => (u + 1 < Z.of_nat B ^ (u + 1)))%Z).
+  rewrite Z.add_0_l, Z.pow_1_r; generalize B_sup_4; lia.
+intros y yge0 IH.
+replace (Z.succ y) with (y + 1)%Z by ring.
+rewrite (Z.pow_add_r); try lia.
+rewrite Z.pow_1_r.
+  apply Z.le_lt_trans with ((y + 1) * 2)%Z; try lia.
+apply Zmult_lt_compat; generalize B_sup_4; lia.
+Qed.
+
 Lemma gauss_sur_B_O :
  forall z n : Z,
  0 < IZR (gauss_z_sur_B_pow z n) < 1 * / 2 -> gauss_z_sur_B_pow z n = 0%Z.

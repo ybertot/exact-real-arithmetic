@@ -70,7 +70,7 @@ Definition absolue_reelc (xc : Reelc) : Reelc := fun n : Z => Z.abs (xc n).
 
 Definition addition_reelc (xc yc : Reelc) : Reelc :=
   fun n : Z => gauss_z_sur_B (xc (n + 1)%Z + yc (n + 1)%Z).
- 
+
 Fixpoint compute_msd_N (xc : Reelc) (n current stop : Z) (fuel : nat) : Z :=
   match fuel with
   | 0 => stop
@@ -81,6 +81,28 @@ Fixpoint compute_msd_N (xc : Reelc) (n current stop : Z) (fuel : nat) : Z :=
     else
       compute_msd_N xc n (current + 1)%Z stop fuel'
   end.
+
+(* This a rather naive way to compute the logarithm of x relative to B,
+  when B is a power of 2, there is a much more efficient way to do so. *)
+Fixpoint ZlogBr (x : Z) (fuel : nat) (candidate : Z) :=
+  match fuel with
+  | 0 => (candidate - 1)%Z
+  | S p =>
+    if (x <? (Z.of_nat B) ^ candidate)%Z then
+      (candidate - 1)%Z
+    else
+      (ZlogBr x p (candidate + 1))%Z
+  end. 
+
+Definition ZlogB (x : Z) :=
+  ZlogBr x (Z.to_nat x) 0.
+  
+Definition compute_msd (xc : Reelc) (n stop : Z) : Z :=
+  if (1 <? Z.abs (xc 0%Z))%Z then
+    let v := ZlogB (Z.abs (xc 0%Z)) in
+    if (1 <? Z.abs (xc v))%Z then v else (v - 1)
+  else
+    compute_msd_N xc n 0 stop (Z.to_nat (n +3 - Z.quot2 n)).
 
 (* If the most significant digit (msd) of x is not yet known, this function
    will attempt to compute it with a limited amount of recursive calls
