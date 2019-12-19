@@ -18,18 +18,48 @@ Require Import Lemmes.
 Require Import Rind_complements.
 Require Import Classical_Prop.
 
-Lemma ZlogBr_correct (x : Z)(n: nat) (candidate : Z) :
-  (Z.of_nat B ^ (candidate - 1) <= x)%Z ->
-  (x < Z.of_nat B ^ (candidate + Z.of_nat n))%Z ->
-  (Z.of_nat B ^ (ZlogBr x n candidate) <= x < 
-   Z.of_nat B ^ ((ZlogBr x n candidate) + 1))%Z.
+Lemma ZlogB_pos (b' x : Z) : (1 <= x)%Z -> (0 <= ZlogB b' x)%Z.
+Proof.
+unfold ZlogB.
+intros xge1.
+assert (xge1_nat : (1 <= Z.to_nat x)%nat).
+  replace 1%nat with (Z.to_nat 1) by reflexivity.
+  rewrite <- Z2Nat.inj_le; try lia.
+enough (forall k, (0 <= k)%Z -> 0 <= ZlogBr b' x (Z.to_nat x) k)%Z.
+  apply H; lia.
+induction xge1_nat as [| m mge1 IH].
+  simpl.
+  intros k.
+  case (Z.eq_dec k 0).
+    intros k0; rewrite k0; intros _; simpl.
+    destruct (Z.ltb_spec x 1); try lia.
+  intros kn0; destruct (x <? b' ^ k)%Z; lia.
+intros k.
+simpl.
+case (Z.eq_dec k 0).
+  intros k0 kge0.
+  rewrite k0; simpl.
+  destruct (Z.ltb_spec x 1); try lia.
+  apply IH; lia.
+intros kn0 kge0.
+destruct (x <? b' ^ k)%Z.
+  lia.
+apply IH.
+lia.
+Qed.
+
+Lemma ZlogBr_correct (b' : Z) (x : Z)(n: nat) (candidate : Z) :
+  (b' ^ (candidate - 1) <= x)%Z ->
+  (x < b' ^ (candidate + Z.of_nat n))%Z ->
+  (b' ^ (ZlogBr b' x n candidate) <= x < 
+   b' ^ ((ZlogBr b' x n candidate) + 1))%Z.
 Proof.
 revert candidate.
 induction n as [ | p].
   now intros c; simpl; rewrite Z.add_0_r, Z.sub_add; intros; split; auto.
 intros c.
 rewrite Nat2Z.inj_succ; simpl ZlogBr.
-destruct (Z.ltb_spec x (Z.of_nat B ^ c)%Z) as [v1 | v2].
+destruct (Z.ltb_spec x (b' ^ c)%Z) as [v1 | v2].
   intros it _; split; auto.
   now rewrite Z.sub_add; auto.
 replace (c + (Z.succ (Z.of_nat p)))%Z with ((c + 1) + Z.of_nat p)%Z by ring.
@@ -37,10 +67,11 @@ intros _ it; apply IHp; auto.
 now rewrite Z.add_simpl_r; auto.
 Qed.
 
-Lemma ZlogB_correct (x : Z) :
-  (0 < x)%Z -> (Z.of_nat B ^ ZlogB x <= x < Z.of_nat B ^ (ZlogB x + 1))%Z.
+Lemma ZlogB_correct (b' x : Z) :
+  (4 <= b')%Z ->
+  (0 < x)%Z -> (b' ^ ZlogB b' x <= x < b' ^ (ZlogB b' x + 1))%Z.
 Proof.
-intros xgt0; assert (tmp := ZlogBr x (Z.to_nat x) 1).
+intros b'sup4 xgt0. (* ; assert (tmp := ZlogBr b' x (Z.to_nat x) 1). *)
 apply ZlogBr_correct.
   now simpl; apply Z.lt_le_incl.
 rewrite Z.add_0_l, Z2Nat.id; cycle 1.
@@ -48,14 +79,14 @@ rewrite Z.add_0_l, Z2Nat.id; cycle 1.
 replace x with ((x - 1) + 1)%Z by ring.
 assert (xm1ge0 : (0 <= x - 1)%Z) by lia.
   generalize xm1ge0; apply
-  (natlike_ind (fun u => (u + 1 < Z.of_nat B ^ (u + 1)))%Z).
-  rewrite Z.add_0_l, Z.pow_1_r; generalize B_sup_4; lia.
+  (natlike_ind (fun u => (u + 1 < b' ^ (u + 1)))%Z).
+  rewrite Z.add_0_l, Z.pow_1_r; lia.
 intros y yge0 IH.
 replace (Z.succ y) with (y + 1)%Z by ring.
 rewrite (Z.pow_add_r); try lia.
 rewrite Z.pow_1_r.
   apply Z.le_lt_trans with ((y + 1) * 2)%Z; try lia.
-apply Zmult_lt_compat; generalize B_sup_4; lia.
+apply Zmult_lt_compat; lia.
 Qed.
 
 Lemma gauss_sur_B_O :
@@ -908,3 +939,735 @@ cut (z = ((r + 1) * (r + 1) - 1)%Z \/ (z < (r + 1) * (r + 1) - 1)%Z);
 exists (r + 1)%Z; omega.
 exists r; omega.
 Qed.
+
+Lemma Bexpos : forall n : Z,
+B_powerRZ n > 0.
+
+Proof.
+  intros n.
+unfold B_powerRZ.
+apply powerRZ_lt.
+apply INR_B_non_nul.
+Qed.
+
+Lemma inverseB_power : forall z : Z, (z >= 0)%Z ->
+IZR(B_powerZ z)=B_powerRZ z.
+Proof. intros z H. unfold B_powerRZ. unfold B_powerZ. 
+unfold powerRZ.
+destruct z; try solve[now case H| reflexivity].
+now rewrite <- positive_nat_Z, <- pow_IZR, INR_IZR_INZ.
+Qed. 
+
+Lemma Bge4 : B_powerRZ 1 >= 4.
+Proof. 
+unfold B_powerRZ, powerRZ; rewrite pow_1; apply Rle_ge.
+replace 4 with (INR 4) by (simpl; ring); apply le_INR, B_sup_4.
+Qed.
+
+Lemma nltmsd : forall (xc :Reelc) (msdx : Z) (n : Z),
+  msd_prop xc msdx ->
+  (n < msdx)%Z ->
+  (absolue_reelc xc n <= 1)%Z.
+Proof. intros xc msdx n msd_p H.  
+unfold absolue_reelc. 
+apply msd_p. assumption. Qed.
+
+
+Lemma xcrangmsd : forall (xc :Reelc) (msdx : Z)(x : R),
+encadrement xc x -> 
+msd_prop xc msdx ->
+(absolue_reelc xc msdx > 1)%Z.
+Proof. intros xc msdx x H msd_p. unfold absolue_reelc.
+apply msd_p. Qed.
+
+Lemma msd_d:
+  forall (xc :Reelc)(msdx : Z)
+  (n :Z) (x : R),
+      x <> 0 -> (n >= msdx)%Z ->
+      encadrement xc x ->
+      msd_prop xc msdx ->
+      (B_powerZ (n - msdx) <= (Z.abs (xc n)) <= (2*(Z_of_nat B)+1)*(B_powerZ (n-msdx)))%Z.
+Proof. 
+intros xc msdx n x H1 H2 H3 msd_p. 
+assert (Bn0 : INR B <> 0).
+apply Rgt_not_eq, Rlt_gt, (lt_INR 0); generalize B_sup_4; lia.
+  assert (H4 :{msdx = (- Int_part (Rlog (Rabs x) (INR B)))%Z} +
+ {msdx = (- Int_part (Rlog (Rabs x) (INR B)) + 1)%Z}  ).
+   apply (msd_prop1 _ _ _ H1 H3 msd_p).
+
+ assert (H5:True) by (exact I).
+assert (H6 : B_powerRZ (Int_part (Rlog (Rabs x) (INR B))) <= Rabs x).
+apply powerRZ_Int_part_Rabs; assumption.
+assert (H7 : Rabs x < B_powerRZ (Int_part (Rlog (Rabs x) (INR B)) + 1)).
+apply powerRZ_Int_part_Rabs2; assumption.
+
+assert (encdrementrabsx : B_powerRZ (Int_part (Rlog (Rabs x) (INR B))) <= Rabs x
+< B_powerRZ (Int_part (Rlog (Rabs x) (INR B)) + 1)).
+split. assumption. assumption. clear H6. clear H7.
+assert (encadrementbis : forall n, encadrement_bis (absolue_reelc xc n) n (Rabs x)).
+unfold encadrement_bis; apply absolue_correct; assumption.
+assert (encadrementordrelog : encadrement_bis (absolue_reelc xc (- Int_part (Rlog (Rabs x) (INR B)))%Z) 
+(- Int_part (Rlog (Rabs x) (INR B)))%Z (Rabs x) ).
+apply encadrementbis. unfold encadrement_bis in encadrementordrelog.
+inversion encadrementordrelog.
+assert (H7 : ((Rabs x) * B_powerRZ (- Int_part (Rlog (Rabs x) (INR B)))) * /
+ B_powerRZ (- Int_part (Rlog (Rabs x) (INR B))) < 
+(IZR (absolue_reelc xc (- Int_part (Rlog (Rabs x) (INR B)))%Z) + 1) * 
+/ B_powerRZ (- Int_part (Rlog (Rabs x) (INR B))) ).
+
+apply Rmult_lt_compat_r. apply Rinv_0_lt_compat.
+apply Rgt_lt. apply Bexpos. assumption. 
+assert (H8 : (IZR (absolue_reelc xc (- Int_part (Rlog (Rabs x) (INR B)))%Z) - 1) *
+ / B_powerRZ (- Int_part (Rlog (Rabs x) (INR B))) < 
+((Rabs x) * B_powerRZ (- Int_part (Rlog (Rabs x) (INR B)))) * / B_powerRZ (- Int_part (Rlog (Rabs x) (INR B))) ).
+apply Rmult_lt_compat_r. apply Rinv_0_lt_compat.
+apply Rgt_lt. apply Bexpos. assumption. clear H0. 
+
+unfold B_powerRZ in H7.
+
+rewrite Rinv_powerRZ in H7.
+replace ((Rabs x) * powerRZ (INR B) (- Int_part (Rlog (Rabs x) (INR B))) *
+     powerRZ (INR B) (- - Int_part (Rlog (Rabs x) (INR B)))) with
+(Rabs x) in H7.
+replace ((- - Int_part (Rlog (Rabs x) (INR B)))%Z) with
+((Int_part (Rlog (Rabs x) (INR B)))) in H7.
+replace ((Rabs x) * B_powerRZ (- Int_part (Rlog (Rabs x) (INR B))) * 
+/ B_powerRZ (- Int_part (Rlog (Rabs x) (INR B))))
+with (Rabs x) in H8.
+replace (powerRZ (INR B) (Int_part (Rlog (Rabs x) (INR B)))) with
+(/ B_powerRZ (- Int_part (Rlog (Rabs x) (INR B)))) in H8.
+clear encadrementordrelog.
+
+assert (H9 : (IZR (absolue_reelc xc (- Int_part (Rlog (Rabs x) (INR B)))%Z) - 1) *
+     / B_powerRZ (- Int_part (Rlog (Rabs x) (INR B))) < 
+B_powerRZ (Int_part (Rlog (Rabs x) (INR B)) + 1) ).
+apply Rgt_lt. apply Rgt_trans with (Rabs x). 
+inversion encdrementrabsx. apply Rlt_gt in H6. assumption.
+apply Rlt_gt. assumption. inversion encdrementrabsx.
+assert (H10 : B_powerRZ (Int_part (Rlog (Rabs x) (INR B))) <
+(IZR (absolue_reelc xc (- Int_part (Rlog (Rabs x) (INR B)))%Z) + 1) *
+     powerRZ (INR B) (Int_part (Rlog (Rabs x) (INR B))) ).
+apply Rle_lt_trans with (Rabs x). assumption. assumption.
+clear H0. clear H6. clear H7. clear H8.
+assert (H11 : ((IZR (absolue_reelc xc (- Int_part (Rlog (Rabs x) (INR B)))%Z) - 1) *
+     / B_powerRZ (- Int_part (Rlog (Rabs x) (INR B)))) * B_powerRZ (- Int_part (Rlog (Rabs x) (INR B)))
+ < B_powerRZ (Int_part (Rlog (Rabs x) (INR B)) + 1) * B_powerRZ (- Int_part (Rlog (Rabs x) (INR B)))).
+apply Rmult_lt_compat_r. apply Rgt_lt. apply Bexpos. assumption.
+replace (B_powerRZ (Int_part (Rlog (Rabs x) (INR B)) + 1) * B_powerRZ (- Int_part (Rlog (Rabs x) (INR B))))
+with (B_powerRZ 1) in H11.
+replace ((IZR (absolue_reelc xc (- Int_part (Rlog (Rabs x) (INR B)))%Z) - 1) *
+      / B_powerRZ (- Int_part (Rlog (Rabs x) (INR B))) * B_powerRZ (- Int_part (Rlog (Rabs x) (INR B))))
+with ((IZR (absolue_reelc xc (- Int_part (Rlog (Rabs x) (INR B)))%Z) - 1)) in H11.
+clear H9.
+
+assert (H12 : (B_powerRZ (Int_part (Rlog (Rabs x) (INR B)))) * B_powerRZ (-Int_part (Rlog (Rabs x) (INR B))) <
+      ((IZR (absolue_reelc xc (- Int_part (Rlog (Rabs x) (INR B)))%Z) + 1) *
+      powerRZ (INR B) (Int_part (Rlog (Rabs x) (INR B)))) * B_powerRZ (-Int_part (Rlog (Rabs x) (INR B))) ).
+apply Rmult_lt_compat_r. apply Rgt_lt. apply Bexpos. assumption.
+replace (B_powerRZ (Int_part (Rlog (Rabs x) (INR B))) * B_powerRZ (- Int_part (Rlog (Rabs x) (INR B))))
+with (1) in H12.
+replace ((IZR (absolue_reelc xc (- Int_part (Rlog (Rabs x) (INR B)))%Z) + 1) *
+      powerRZ (INR B) (Int_part (Rlog (Rabs x) (INR B))) * B_powerRZ (- Int_part (Rlog (Rabs x) (INR B))))
+with (IZR (absolue_reelc xc (- Int_part (Rlog (Rabs x) (INR B)))%Z) + 1) in H12.
+clear H10. rewrite <- plus_IZR in H12.
+apply lt_IZR in H12.
+apply Z.lt_succ_r in H12.
+rewrite <- minus_IZR in H11. rewrite <- inverseB_power in H11.
+apply lt_IZR in H11.  apply Z.lt_pred_le in H11.
+apply IZR_le in H12. apply IZR_le in H11.
+assert (encadrementxlog : 
+1 <= IZR (absolue_reelc xc (- Int_part (Rlog (Rabs x) (INR B)))%Z)
+<= IZR (B_powerZ 1) ).
+split. assumption. assumption. clear H11. clear H12.
+assert (suppos : 1 = IZR (absolue_reelc xc (- Int_part (Rlog (Rabs x) (INR B)))%Z) ->
+ IZR (absolue_reelc xc (- Int_part (Rlog (Rabs x) (INR B)) + 1)%Z) >  1).
+intros hypo. 
+assert (encadrementxlogplus1 : 
+encadrement_bis (absolue_reelc xc ((- Int_part (Rlog (Rabs x) (INR B)) + 1)%Z) ) 
+((- Int_part (Rlog (Rabs x) (INR B)) + 1)%Z) (Rabs x) ).
+apply encadrementbis. unfold encadrement_bis in encadrementxlogplus1.
+inversion encadrementxlogplus1.
+assert ((IZR (absolue_reelc xc (- Int_part (Rlog (Rabs x) (INR B)) + 1)%Z) - 1) * /
+ B_powerRZ (- Int_part (Rlog (Rabs x) (INR B)) + 1) <
+     (Rabs x * B_powerRZ (- Int_part (Rlog (Rabs x) (INR B)) + 1))
+* / B_powerRZ (- Int_part (Rlog (Rabs x) (INR B)) + 1) ).
+apply Rmult_lt_compat_r. apply Rinv_0_lt_compat.
+apply Rgt_lt. apply Bexpos. assumption.
+replace (Rabs x * B_powerRZ (- Int_part (Rlog (Rabs x) (INR B)) + 1) *
+     / B_powerRZ (- Int_part (Rlog (Rabs x) (INR B)) + 1)) with
+(Rabs x) in H7. clear H0.
+assert (H8 : (Rabs x * B_powerRZ (- Int_part (Rlog (Rabs x) (INR B)) + 1)) * /
+B_powerRZ (- Int_part (Rlog (Rabs x) (INR B)) + 1) <
+     (IZR (absolue_reelc xc (- Int_part (Rlog (Rabs x) (INR B)) + 1)%Z) + 1) * /
+B_powerRZ (- Int_part (Rlog (Rabs x) (INR B)) + 1) ).
+apply Rmult_lt_compat_r. apply Rinv_0_lt_compat.
+apply Rgt_lt. apply Bexpos. assumption. clear H6.
+replace (Rabs x * B_powerRZ (- Int_part (Rlog (Rabs x) (INR B)) + 1) *
+     / B_powerRZ (- Int_part (Rlog (Rabs x) (INR B)) + 1)) with
+(Rabs x) in H8.
+assert (H9 :B_powerRZ (Int_part (Rlog (Rabs x) (INR B))) <
+     (IZR (absolue_reelc xc (- Int_part (Rlog (Rabs x) (INR B)) + 1)%Z) + 1) *
+     / B_powerRZ (- Int_part (Rlog (Rabs x) (INR B)) + 1) ).
+inversion encdrementrabsx.
+apply Rle_lt_trans with (Rabs x). assumption. assumption.
+assert (H10 : (IZR (absolue_reelc xc (- Int_part (Rlog (Rabs x) (INR B)) + 1)%Z) - 1) *
+     / B_powerRZ (- Int_part (Rlog (Rabs x) (INR B)) + 1) < 
+B_powerRZ (Int_part (Rlog (Rabs x) (INR B)) + 1)).
+apply Rgt_lt. apply Rgt_trans with (Rabs x). apply Rlt_gt.
+inversion encdrementrabsx.
+assumption. apply Rlt_gt. assumption.
+clear H7. clear H8.
+assert (H11 : B_powerRZ (Int_part (Rlog (Rabs x) (INR B))) * 
+B_powerRZ (- Int_part (Rlog (Rabs x) (INR B)) + 1) <
+     ((IZR (absolue_reelc xc (- Int_part (Rlog (Rabs x) (INR B)) + 1)%Z) + 1) *
+     / B_powerRZ (- Int_part (Rlog (Rabs x) (INR B)) + 1)) *
+B_powerRZ (- Int_part (Rlog (Rabs x) (INR B)) + 1) ).
+apply Rmult_gt_compat_r. apply Bexpos. assumption. clear H9.
+
+replace ((IZR (absolue_reelc xc (- Int_part (Rlog (Rabs x) (INR B)) + 1)%Z) + 1) *
+      / B_powerRZ (- Int_part (Rlog (Rabs x) (INR B)) + 1) *
+ B_powerRZ (- Int_part (Rlog (Rabs x) (INR B)) + 1)) 
+with ((IZR (absolue_reelc xc (- Int_part (Rlog (Rabs x) (INR B)) + 1)%Z) + 1)) in H11.
+replace (B_powerRZ (Int_part (Rlog (Rabs x) (INR B))) *
+ B_powerRZ (- Int_part (Rlog (Rabs x) (INR B)) + 1))
+with (B_powerRZ 1) in H11.
+
+assert (H12 : ((IZR (absolue_reelc xc (- Int_part (Rlog (Rabs x) (INR B)) + 1)%Z) - 1) *
+      / B_powerRZ (- Int_part (Rlog (Rabs x) (INR B)) + 1))
+* B_powerRZ (- Int_part (Rlog (Rabs x) (INR B)) + 1) < 
+B_powerRZ (Int_part (Rlog (Rabs x) (INR B)) + 1) * 
+B_powerRZ (- Int_part (Rlog (Rabs x) (INR B)) + 1) ).
+apply Rmult_lt_compat_r. apply Rgt_lt. apply Bexpos. 
+assumption.
+replace ((IZR (absolue_reelc xc (- Int_part (Rlog (Rabs x) (INR B)) + 1)%Z) - 1) *
+      / B_powerRZ (- Int_part (Rlog (Rabs x) (INR B)) + 1) * 
+B_powerRZ (- Int_part (Rlog (Rabs x) (INR B)) + 1))
+with ((IZR (absolue_reelc xc (- Int_part (Rlog (Rabs x) (INR B)) + 1)%Z) - 1)) in H12.
+replace (B_powerRZ (Int_part (Rlog (Rabs x) (INR B)) + 1) *
+ B_powerRZ (- Int_part (Rlog (Rabs x) (INR B)) + 1))
+with (B_powerRZ 2) in H12. clear H10.
+rewrite <- plus_IZR in H11. rewrite <- inverseB_power in H11.
+apply lt_IZR in H11.
+apply Z.lt_succ_r in H11.
+rewrite <- minus_IZR in H12. rewrite <- inverseB_power in H12.
+apply lt_IZR in H12.
+apply Z.lt_pred_le in H12.
+apply IZR_le in H11. apply IZR_le in H12.
+apply Rge_gt_trans with (IZR (B_powerZ 1)).
+apply Rle_ge; assumption.
+rewrite inverseB_power. 
+apply Rge_gt_trans with (4). apply Bge4. lra. omega. omega. omega.
+unfold B_powerRZ; rewrite <- powerRZ_add; auto. 
+apply f_equal; ring.
+replace (IZR (absolue_reelc xc (- Int_part (Rlog (Rabs x) (INR B)) + 1)%Z) - 1) with
+((IZR (absolue_reelc xc (- Int_part (Rlog (Rabs x) (INR B)) + 1)%Z) - 1) * 1).
+replace ((IZR (absolue_reelc xc (- Int_part (Rlog (Rabs x) (INR B)) + 1)%Z) - 1) * 1 *
+/ B_powerRZ (- Int_part (Rlog (Rabs x) (INR B)) + 1) * 
+B_powerRZ (- Int_part (Rlog (Rabs x) (INR B)) + 1))
+with ((IZR (absolue_reelc xc (- Int_part (Rlog (Rabs x) (INR B)) + 1)%Z) - 1) *
+(/ B_powerRZ (- Int_part (Rlog (Rabs x) (INR B)) + 1) * 
+B_powerRZ (- Int_part (Rlog (Rabs x) (INR B)) + 1))).
+apply Rmult_eq_compat_l. rewrite <- Rinv_l_sym. reflexivity.
+now apply Rgt_not_eq; apply Bexpos.
+ring. ring. unfold B_powerRZ. rewrite <- powerRZ_add; auto.
+apply f_equal; ring.
+replace (IZR (absolue_reelc xc (- Int_part (Rlog (Rabs x) (INR B)) + 1)%Z) + 1) with
+((IZR (absolue_reelc xc (- Int_part (Rlog (Rabs x) (INR B)) + 1)%Z) + 1) * 1).
+replace ((IZR (absolue_reelc xc (- Int_part (Rlog (Rabs x) (INR B)) + 1)%Z) + 1) * 1 *
+/ B_powerRZ (- Int_part (Rlog (Rabs x) (INR B)) + 1) * 
+B_powerRZ (- Int_part (Rlog (Rabs x) (INR B)) + 1))
+with ((IZR (absolue_reelc xc (- Int_part (Rlog (Rabs x) (INR B)) + 1)%Z) + 1) *
+(/ B_powerRZ (- Int_part (Rlog (Rabs x) (INR B)) + 1) * 
+B_powerRZ (- Int_part (Rlog (Rabs x) (INR B)) + 1))).
+apply Rmult_eq_compat_l. rewrite <- Rinv_l_sym. reflexivity.
+apply Rgt_not_eq. apply Bexpos. ring. ring. 
+replace (Rabs x) with (Rabs x * 1).
+replace (Rabs x * 1 * B_powerRZ (- Int_part (Rlog (Rabs x * 1) (INR B)) + 1) *
+/ B_powerRZ (- Int_part (Rlog (Rabs x * 1) (INR B)) + 1)) with
+(Rabs x * (B_powerRZ (- Int_part (Rlog (Rabs x * 1) (INR B)) + 1) *
+/ B_powerRZ (- Int_part (Rlog (Rabs x * 1) (INR B)) + 1))).
+apply Rmult_eq_compat_l. rewrite  Rinv_r. reflexivity.
+apply Rgt_not_eq. apply Bexpos. ring. ring.
+replace (Rabs x) with (Rabs x * 1).
+replace (Rabs x * 1 * B_powerRZ (- Int_part (Rlog (Rabs x * 1) (INR B)) + 1) *
+/ B_powerRZ (- Int_part (Rlog (Rabs x * 1) (INR B)) + 1)) with
+(Rabs x * (B_powerRZ (- Int_part (Rlog (Rabs x * 1) (INR B)) + 1) *
+/ B_powerRZ (- Int_part (Rlog (Rabs x * 1) (INR B)) + 1))).
+apply Rmult_eq_compat_l. rewrite  Rinv_r. reflexivity.
+apply Rgt_not_eq. apply Bexpos. ring. ring.
+
+assert (nltmoinslog : (n < - Int_part (Rlog (Rabs x) (INR B)))%Z -> 
+(absolue_reelc xc n <= 1)%Z).
+intros nlt. 
+assert (encadrementxn : encadrement_bis (absolue_reelc xc n) n (Rabs x)).
+apply encadrementbis. unfold encadrement_bis in encadrementxn.
+inversion encadrementxn. clear H6.
+assert (H6 : (IZR (absolue_reelc xc n) - 1) * / B_powerRZ n
+ < (Rabs x * B_powerRZ n) * / B_powerRZ n ).
+apply Rmult_lt_compat_r. apply Rinv_0_lt_compat.
+apply Rgt_lt. apply Bexpos. assumption.
+replace (Rabs x * B_powerRZ n * / B_powerRZ n) with (Rabs x) in H6. clear H0.
+clear encadrementxn.
+assert (H7 : (IZR (absolue_reelc xc n) - 1) * / B_powerRZ n < 
+B_powerRZ (Int_part (Rlog (Rabs x) (INR B)) + 1) ).
+apply Rgt_lt. apply Rgt_trans with (Rabs x).
+inversion encdrementrabsx. apply Rlt_gt. assumption.
+apply Rlt_gt. assumption. clear H6.
+assert (H8 : ((IZR (absolue_reelc xc n) - 1) * / B_powerRZ n) * B_powerRZ n < 
+B_powerRZ (Int_part (Rlog (Rabs x) (INR B)) + 1) * B_powerRZ n ).
+apply Rmult_lt_compat_r. apply Rgt_lt. apply Bexpos. assumption.
+clear H7.
+replace ((IZR (absolue_reelc xc n) - 1) * / B_powerRZ n * B_powerRZ n) with
+((IZR (absolue_reelc xc n) - 1)) in H8. 
+assert (nlt2 : (n + Int_part (Rlog (Rabs x) (INR B)) <
+ - Int_part (Rlog (Rabs x) (INR B)) + Int_part (Rlog (Rabs x) (INR B)))%Z ).
+apply lt_IZR. 
+rewrite plus_IZR. rewrite plus_IZR. apply Rplus_lt_compat_r.
+apply IZR_lt. assumption. clear nlt.
+replace ( (- Int_part (Rlog (Rabs x) (INR B)) + Int_part (Rlog (Rabs x) (INR B)))%Z) with
+(0%Z) in nlt2.
+apply Z.le_succ_l in nlt2; unfold Z.succ in nlt2.
+assert (B_powerlt : B_powerRZ (Int_part (Rlog (Rabs x) (INR B)) + 1 + n) <= 1).
+replace (1) with (B_powerRZ 0).
+unfold B_powerRZ. apply Rle_powerRZ.
+apply Rle_trans with (4). lra. replace 4 with (INR 4) by (simpl; ring).
+apply le_INR; generalize B_sup_4; lia.
+replace ((Int_part (Rlog (Rabs x) (INR B)) + 1 + n)%Z) with
+((n + Int_part (Rlog (Rabs x) (INR B)) + 1)%Z). assumption.
+ring. 
+reflexivity. clear nlt2.
+assert (encadrementxn : IZR (absolue_reelc xc n) - 1 < 1).
+apply Rlt_le_trans with (B_powerRZ (Int_part (Rlog (Rabs x) (INR B)) + 1 + n)).
+unfold B_powerRZ; rewrite powerRZ_add; auto.
+assumption.
+rewrite <- minus_IZR in encadrementxn.
+apply lt_IZR in encadrementxn.
+lia.
+ring.
+field.
+apply Rgt_not_eq, Bexpos.
+field.
+apply Rgt_not_eq, Bexpos.
+assert (msdegallog : msdx = (- Int_part (Rlog (Rabs x) (INR B)))%Z ->
+(1 <= absolue_reelc xc msdx <= B_powerZ 1)%Z ).
+intros ms.  rewrite ms. split. apply le_IZR. inversion encadrementxlog.
+assumption. apply le_IZR. inversion encadrementxlog.
+ assumption.
+assert (msdegallogplus1 : 
+msdx = (- Int_part (Rlog (Rabs x) (INR B)) + 1)%Z ->
+ ( absolue_reelc xc (- Int_part (Rlog (Rabs x) (INR B))) = 1)%Z ).
+intros msdxc.
+inversion encadrementxlog. clear H6.
+assert (H7 : 1 >= IZR (absolue_reelc xc (- Int_part (Rlog (Rabs x) (INR B)))%Z)).
+apply Rle_ge. apply IZR_le. apply (nltmsd xc msdx); auto.
+apply lt_IZR.
+rewrite msdxc; apply IZR_lt; lia.
+
+now apply Zle_antisym; [apply le_IZR, Rge_le | apply le_IZR].
+
+assert (msdegallogplus2 : 
+msdx = (- Int_part (Rlog (Rabs x) (INR B)) + 1)%Z ->
+                  (absolue_reelc xc (- Int_part (Rlog (Rabs x) (INR B)))+ 1)%Z =
+ (1 + 1)%Z ).
+intros msdxc. apply eq_IZR. rewrite plus_IZR. rewrite plus_IZR.
+apply Rplus_eq_compat_r. apply f_equal. apply msdegallogplus1.
+assumption. clear msdegallogplus1.
+assert (encadrementordrelog : encadrement_bis (absolue_reelc xc 
+((- Int_part (Rlog (Rabs x) (INR B)))%Z)) 
+((- Int_part (Rlog (Rabs x) (INR B)))%Z) (Rabs x) ).
+apply encadrementbis. unfold encadrement_bis in encadrementordrelog.
+inversion encadrementordrelog.
+assert (H7 : (Rabs x * B_powerRZ (- Int_part (Rlog (Rabs x) (INR B))))*
+B_powerRZ ( Int_part (Rlog (Rabs x) (INR B))) <
+     (IZR (absolue_reelc xc (- Int_part (Rlog (Rabs x) (INR B)))%Z) + 1) * 
+B_powerRZ (Int_part (Rlog (Rabs x) (INR B))) ). apply Rmult_lt_compat_r.
+apply Rgt_lt. apply Bexpos. assumption. clear H6.
+replace (Rabs x * B_powerRZ (- Int_part (Rlog (Rabs x) (INR B))) *
+ B_powerRZ (Int_part (Rlog (Rabs x) (INR B))))
+with (Rabs x) in H7.
+clear encadrementordrelog.
+assert (msdegallogplus3 : msdx = (- Int_part (Rlog (Rabs x) (INR B)) + 1)%Z 
+-> Rabs x < 2 * B_powerRZ (Int_part (Rlog (Rabs x) (INR B))) ).
+intros msdxc.
+apply IZR_trivial in msdegallogplus2.
+replace (2) with (IZR (1 + 1)).
+rewrite <- msdegallogplus2. rewrite <- plus_IZR in H7. assumption.
+apply IZR_trivial. ring. assumption. clear H7.
+assert (encadrementlogplus1 : encadrement_bis (absolue_reelc xc 
+((- Int_part (Rlog (Rabs x) (INR B)) + 1)%Z)) ((- Int_part (Rlog (Rabs x) (INR B)) + 1)%Z)
+ (Rabs x) ). apply encadrementbis.
+unfold encadrement_bis in encadrementlogplus1. inversion encadrementlogplus1.
+clear encadrementlogplus1. clear H7.
+assert (msdegallogplus4 : msdx = (- Int_part (Rlog (Rabs x) (INR B)) + 1)%Z ->
+                  Rabs x * B_powerRZ (- Int_part (Rlog (Rabs x) (INR B)) + 1)
+ < (2 * B_powerRZ (Int_part (Rlog (Rabs x) (INR B)))) *
+ B_powerRZ (- Int_part (Rlog (Rabs x) (INR B)) + 1) ).
+intros msdxc. apply Rmult_lt_compat_r. apply Rgt_lt. 
+apply Bexpos. apply msdegallogplus3. assumption. clear msdegallogplus3.
+replace (2 * B_powerRZ (Int_part (Rlog (Rabs x) (INR B))) *
+                  B_powerRZ (- Int_part (Rlog (Rabs x) (INR B)) + 1)) 
+with (2 * B_powerRZ 1) in msdegallogplus4.
+
+assert (encadrementxlogplus1 : msdx = (- Int_part (Rlog (Rabs x) (INR B)) + 1)%Z ->
+IZR (absolue_reelc xc msdx%Z) - 1 <
+2 * B_powerRZ 1 ).
+
+intros msdxc. rewrite msdxc.
+apply Rgt_lt. apply Rgt_trans with 
+(Rabs x * B_powerRZ (- Int_part (Rlog (Rabs x) (INR B)) + 1)).
+apply Rlt_gt. apply msdegallogplus4. assumption.
+apply Rlt_gt. assumption. clear H6. clear H0. clear msdegallogplus4.
+
+assert (xcrangmsdgt1 : (absolue_reelc xc msdx > 1)%Z ).
+
+
+apply xcrangmsd with x. assumption. auto.
+
+assert (xrangmsdentre2et2b : msdx = (- Int_part (Rlog (Rabs x) (INR B)) + 1)%Z ->
+ 2 <= IZR (absolue_reelc xc msdx) <= 2 * B_powerRZ 1).
+
+intros msdxc. 
+split. 
+apply IZR_le. rewrite <- Z.lt_pred_le; apply Z.gt_lt. assumption.
+replace (IZR (absolue_reelc xc msdx)) with 
+(IZR (absolue_reelc xc msdx) - 1 + 1).
+rewrite <- minus_IZR. rewrite <- plus_IZR. rewrite <- inverseB_power. 
+rewrite <- mult_IZR.
+apply IZR_le. apply Z.le_succ_l.
+apply lt_IZR. rewrite mult_IZR. rewrite inverseB_power. 
+rewrite minus_IZR. apply encadrementxlogplus1. assumption. omega. omega.
+ring. 
+
+assert (encadrementordremsd : encadrement_bis (absolue_reelc xc msdx)
+ msdx (Rabs x) ). apply encadrementbis. 
+unfold encadrement_bis in encadrementordremsd.
+inversion encadrementordremsd. clear encadrementordremsd.
+
+assert (H7 : (IZR (absolue_reelc xc msdx) - 1) * B_powerRZ (n - msdx)
+ < Rabs x * B_powerRZ msdx *  B_powerRZ (n - msdx) ).
+apply Rmult_lt_compat_r. apply Rgt_lt. apply Bexpos. assumption.
+clear H0.
+replace (Rabs x * B_powerRZ msdx * B_powerRZ (n - msdx)) with
+(Rabs x * B_powerRZ (n) ) in H7.
+
+assert (H8 : Rabs x * B_powerRZ msdx * B_powerRZ ( n - msdx) < 
+(IZR (absolue_reelc xc msdx) + 1) * B_powerRZ ( n - msdx) ).
+apply Rmult_lt_compat_r. apply Rgt_lt. apply Bexpos. assumption. 
+clear H6.
+
+replace (Rabs x * B_powerRZ msdx * B_powerRZ (n - msdx))
+with (Rabs x * B_powerRZ (n)) in H8.
+
+
+assert (encadrementordren : encadrement_bis (absolue_reelc xc n)
+ n (Rabs x) ). apply encadrementbis. 
+unfold encadrement_bis in encadrementordren.
+inversion encadrementordren. clear encadrementordren.
+
+assert (encadrementfinal1 : (IZR (absolue_reelc xc msdx) - 1) *
+ B_powerRZ (n - msdx) < IZR (absolue_reelc xc n) + 1 ).
+apply Rgt_lt. apply Rgt_trans with (Rabs x * B_powerRZ n).
+apply Rlt_gt. assumption.
+apply Rlt_gt. assumption.
+
+assert (encadrementfinal2 : IZR (absolue_reelc xc n) - 1 <
+(IZR (absolue_reelc xc msdx) + 1) * B_powerRZ (n - msdx) ).
+apply Rgt_lt. apply Rgt_trans with (Rabs x * B_powerRZ n).
+apply Rlt_gt. assumption.
+apply Rlt_gt. assumption.
+
+clear H7. clear H8. clear H0. clear H6.
+
+rewrite <- plus_IZR in encadrementfinal1. rewrite <- inverseB_power in 
+encadrementfinal1. rewrite <- inverseB_power in encadrementfinal2.
+rewrite <- minus_IZR in encadrementfinal1.
+rewrite <- mult_IZR in encadrementfinal1.
+rewrite <- minus_IZR in encadrementfinal2. 
+rewrite <- plus_IZR in encadrementfinal2.
+rewrite <- mult_IZR in encadrementfinal2.
+apply lt_IZR in encadrementfinal1.
+apply lt_IZR in encadrementfinal2.
+apply Z.lt_succ_r in encadrementfinal1.
+apply Z.lt_pred_le in encadrementfinal2.
+apply IZR_le in encadrementfinal1.
+apply IZR_le in encadrementfinal2.
+
+assert (xcmsdcomprisentre : 2 <= IZR (absolue_reelc xc msdx) <= 2 * B_powerRZ 1).
+inversion H4.
+
+assert (H10 : (1 < absolue_reelc xc msdx <= B_powerZ 1)%Z ).
+
+split. apply Z.gt_lt. apply xcrangmsd with x. assumption.
+auto.
+rewrite H0.
+
+apply le_IZR. apply encadrementxlog.
+inversion H10. clear H10. 
+split. apply IZR_le; lia.
+apply Rle_trans with (B_powerRZ 1). rewrite <- inverseB_power.
+apply IZR_le. assumption. omega. replace (B_powerRZ 1) with (B_powerRZ 1 + 0).
+ replace (2 * (B_powerRZ 1 + 0)) with
+(B_powerRZ 1 + B_powerRZ 1). apply Rplus_le_compat_l. 
+apply Rlt_le. apply Rgt_lt. apply Bexpos. ring.
+ring.
+apply xrangmsdentre2et2b. assumption.
+clear xrangmsdentre2et2b. 
+
+assert (encadrementfinal3 : B_powerRZ (n - msdx) <= 
+IZR ((absolue_reelc xc msdx - 1) * B_powerZ (n - msdx)) ).
+replace (B_powerRZ (n - msdx)) with (1 * B_powerRZ (n - msdx)).
+rewrite mult_IZR. rewrite inverseB_power.
+apply Rmult_le_compat_r.
+apply Rlt_le. apply Rgt_lt. apply Bexpos.
+apply Rplus_le_reg_r with (1). replace (1 + 1) with (2).
+replace (IZR (absolue_reelc xc msdx - 1) + 1) with
+(IZR (absolue_reelc xc msdx)). inversion xcmsdcomprisentre.  assumption.
+rewrite minus_IZR. ring. ring. 
+apply Z.le_ge. apply le_IZR. rewrite minus_IZR.
+replace (IZR n - IZR msdx) with (IZR n + IZR (-msdx)).
+replace (0) with (IZR msdx + IZR (- msdx)).
+apply Rplus_le_compat_r. apply IZR_le. apply Z.ge_le. assumption.
+rewrite <- plus_IZR. apply IZR_trivial. ring.
+rewrite <- plus_IZR. rewrite <- minus_IZR. apply IZR_trivial.
+ring. ring.
+split. apply le_IZR. apply Rle_trans with 
+(IZR ((absolue_reelc xc msdx - 1) * B_powerZ (n - msdx))).
+rewrite inverseB_power. assumption. 
+apply Z.le_ge. apply le_IZR. rewrite minus_IZR.
+replace (IZR n - IZR msdx) with (IZR n + IZR (-msdx)).
+replace (0) with (IZR msdx + IZR (- msdx)).
+apply Rplus_le_compat_r. apply IZR_le. apply Z.ge_le. assumption.
+rewrite <- plus_IZR. apply IZR_trivial. ring.
+rewrite <- plus_IZR. rewrite <- minus_IZR. apply IZR_trivial.
+ring.
+unfold absolue_reelc in encadrementfinal1. unfold absolue_reelc.
+assumption. clear encadrementfinal1. clear encadrementfinal3.
+assert (encadrementfinal4 : 
+IZR ((absolue_reelc xc msdx + 1) * B_powerZ (n - msdx)) <= 
+(2 * B_powerRZ 1 + 1) * B_powerRZ (n - msdx) ).
+rewrite mult_IZR. rewrite inverseB_power.
+apply Rmult_le_compat_r. apply Rlt_le.
+apply Rgt_lt. apply Bexpos. rewrite plus_IZR.
+apply Rplus_le_compat_r. inversion xcmsdcomprisentre. assumption. 
+apply Z.le_ge. apply le_IZR. rewrite minus_IZR.
+replace (IZR n - IZR msdx) with (IZR n + IZR (-msdx)).
+replace (0) with (IZR msdx + IZR (- msdx)).
+apply Rplus_le_compat_r. apply IZR_le. apply Z.ge_le. assumption.
+rewrite <- plus_IZR. apply IZR_trivial. ring.
+rewrite <- plus_IZR. rewrite <- minus_IZR. apply IZR_trivial.
+ring.
+apply le_IZR. unfold absolue_reelc in encadrementfinal4.
+unfold absolue_reelc in encadrementfinal2.
+apply Rle_trans with (IZR ((Z.abs (xc msdx) + 1) * 
+B_powerZ (n - msdx))). assumption. rewrite mult_IZR.
+rewrite mult_IZR. rewrite plus_IZR. rewrite plus_IZR.
+apply Rmult_le_compat_r.  apply Rlt_le.
+rewrite inverseB_power. apply Rgt_lt. apply Bexpos. 
+apply Z.le_ge. apply le_IZR. rewrite minus_IZR.
+replace (IZR n - IZR msdx) with (IZR n + IZR (-msdx)).
+replace (0) with (IZR msdx + IZR (- msdx)).
+apply Rplus_le_compat_r. apply IZR_le. apply Z.ge_le. assumption.
+rewrite <- plus_IZR. apply IZR_trivial. ring.
+rewrite <- plus_IZR. rewrite <- minus_IZR. apply IZR_trivial.
+ring.
+rewrite mult_IZR. replace (IZR (Z.of_nat B)) with
+(IZR (Z.of_nat B^1)).
+apply Rplus_le_compat_r.
+destruct xcmsdcomprisentre as [it1 it2].
+unfold B_powerRZ in it2; rewrite powerRZ_1 in it2.
+rewrite Z.pow_1_r, <- INR_IZR_INZ; assumption.
+rewrite Z.pow_1_r; reflexivity.
+apply Z.le_ge. apply le_IZR. rewrite minus_IZR.
+replace (IZR n - IZR msdx) with (IZR n + IZR (-msdx)).
+replace (0) with (IZR msdx + IZR (- msdx)).
+apply Rplus_le_compat_r. apply IZR_le. apply Z.ge_le. assumption.
+rewrite <- plus_IZR. apply IZR_trivial. ring.
+rewrite <- plus_IZR. rewrite <- minus_IZR. apply IZR_trivial.
+ring. 
+apply Z.le_ge. apply le_IZR. rewrite minus_IZR.
+replace (IZR n - IZR msdx) with (IZR n + IZR (-msdx)).
+replace (0) with (IZR msdx + IZR (- msdx)).
+apply Rplus_le_compat_r. apply IZR_le. apply Z.ge_le. assumption.
+rewrite <- plus_IZR. apply IZR_trivial. ring.
+rewrite <- plus_IZR. rewrite <- minus_IZR. apply IZR_trivial.
+ring.
+
+replace (Rabs x * B_powerRZ msdx * B_powerRZ (n - msdx))
+with (Rabs x * (B_powerRZ msdx * B_powerRZ (n - msdx))).
+apply Rmult_eq_compat_l.
+unfold B_powerRZ; rewrite <- powerRZ_add; auto.
+apply f_equal; ring.
+ring.
+rewrite Rmult_assoc; unfold B_powerRZ.
+apply Rmult_eq_compat_l.
+rewrite <- powerRZ_add; auto.
+apply f_equal; ring.
+rewrite Rmult_assoc.
+apply Rmult_eq_compat_l. unfold B_powerRZ; rewrite <- powerRZ_add; auto.
+apply f_equal; ring.
+rewrite Rmult_assoc.
+unfold B_powerRZ; rewrite <- powerRZ_add; auto.
+replace (- Int_part (Rlog (Rabs x)(INR B)) + Int_part (Rlog (Rabs x)(INR B)))%Z
+  with 0%Z by ring.
+rewrite powerRZ_O; ring.
+lia.
+replace (powerRZ (INR B) (Int_part (Rlog (Rabs x) (INR B))))
+with (B_powerRZ (Int_part (Rlog (Rabs x) (INR B)))).
+replace (IZR (absolue_reelc xc (- Int_part (Rlog (Rabs x) (INR B)))%Z) + 1) with
+((IZR (absolue_reelc xc (- Int_part (Rlog (Rabs x) (INR B)))%Z) + 1) * 1).
+replace ((IZR (absolue_reelc xc (- Int_part (Rlog (Rabs x) (INR B)))%Z) + 1) * 1 *
+B_powerRZ (Int_part (Rlog (Rabs x) (INR B))) *
+ B_powerRZ (- Int_part (Rlog (Rabs x) (INR B))))
+with ((IZR (absolue_reelc xc (- Int_part (Rlog (Rabs x) (INR B)))%Z) + 1) *
+(B_powerRZ (Int_part (Rlog (Rabs x) (INR B))) *
+ B_powerRZ (- Int_part (Rlog (Rabs x) (INR B))))).
+apply Rmult_eq_compat_l. replace (1) with (B_powerRZ 0).
+unfold B_powerRZ; rewrite <- powerRZ_add; auto.
+apply f_equal; ring.
+now unfold B_powerRZ; rewrite powerRZ_O.
+ring.
+ring.
+reflexivity.
+unfold B_powerRZ; rewrite <- powerRZ_add; auto.
+replace
+ (Int_part (Rlog (Rabs x) (INR B)) + - Int_part (Rlog (Rabs x) (INR B)))%Z
+with 0%Z by ring.
+now rewrite powerRZ_O.
+rewrite Rmult_assoc, Rinv_l.
+ring.
+apply powerRZ_INR_B_non_nul.
+unfold B_powerRZ.
+rewrite <- powerRZ_add.
+apply f_equal; ring.
+apply Rgt_not_eq, Rlt_gt, (lt_INR 0); generalize B_sup_4; lia.
+unfold B_powerRZ; rewrite Rinv_powerRZ.
+apply f_equal; ring.
+apply Rgt_not_eq, Rlt_gt, (lt_INR 0); generalize B_sup_4; lia.
+field.
+apply Rgt_not_eq, Bexpos.
+ring.
+rewrite Rmult_assoc; rewrite <- powerRZ_add.
+replace (- Int_part (Rlog (Rabs x) (INR B)) + - - Int_part (Rlog (Rabs x) (INR B)))%Z with 0%Z by ring.
+rewrite powerRZ_O; ring.
+apply Rgt_not_eq, Rlt_gt, (lt_INR 0); generalize B_sup_4; lia.
+apply Rgt_not_eq, Rlt_gt, (lt_INR 0); generalize B_sup_4; lia.
+Qed.
+
+Lemma compute_msd_up (x : R)(xc : Reelc)
+ (max : Z) :
+ x <> 0 -> encadrement xc x ->
+ (max < msd x xc)%Z ->
+ compute_msd (Z.of_nat B) xc max = max.
+Proof.
+intros xn0 xcx mm.
+unfold compute_msd.
+assert (msd_prop xc (msd x xc)) as [ple _] by now apply msd_prop2.
+assert (ple' := ple max mm).
+destruct (Z.ltb_spec 1 (Z.abs (xc max)))as [plt | _]; auto.
+now destruct (Zlt_not_le _ _ plt); auto.
+Qed.
+
+Lemma powerRZ_pow x y : (0 <= y)%Z -> (IZR (x ^ y)) = powerRZ (IZR x) y.
+intros ygt0.
+unfold powerRZ.
+destruct y; auto; try lia.
+rewrite <- positive_nat_Z.
+now rewrite <- pow_IZR.
+Qed.
+
+Lemma compute_msd_down (x : R)(xc : Reelc)
+ (max : Z) :
+ x <> 0 -> encadrement xc x ->
+ (msd x xc <= max)%Z ->
+ compute_msd (Z.of_nat B) xc max = (msd x xc).
+Proof.
+intros xn0 xcx mm; unfold compute_msd.
+assert (mp : msd_prop xc (msd x xc)) by now apply msd_prop2.
+destruct (mp) as [ple _].
+assert (mm' := Z.le_ge _ _ mm).
+assert (main := msd_d xc (msd x xc) max x xn0 mm' xcx mp).
+destruct (Z.ltb_spec 1 (Z.abs (xc max))) as [plt | ple']; cycle 1.
+  assert (1 < Z.abs (xc max))%Z.
+    destruct (Zle_lt_or_eq _ _ mm) as [mlt |meq].
+      apply Z.lt_le_trans with (2 := proj1 main).
+      unfold B_powerZ.
+      apply Z.pow_gt_1.
+        apply (inj_lt 1); generalize B_sup_4; lia.
+      lia.
+    now apply Z.gt_lt; rewrite <- meq; destruct mp as [mp1 mp2]; apply mp2.
+  now generalize ple'; rewrite Z.le_ngt; intros abs; case abs.
+set (w := Z.abs _).
+assert (B_sup_4' : (4 <= Z.of_nat B)%Z).
+  replace 4%Z with (Z.of_nat 4) by (simpl; ring).
+  apply inj_le; exact B_sup_4.
+destruct (Z.ltb_spec 1 w).
+  apply (msd_prop_unique x xc); auto.
+  split;[ | now apply Z.lt_gt; auto].
+  intros n nl; assert (tmp := xcx n).
+  rewrite <- Z.lt_succ_r; unfold Z.succ.
+  apply lt_IZR; simpl; rewrite abs_IZR.
+  apply Rabs_def1.
+    enough (IZR (xc n) - 1 < 1) by lra.
+    assert (xbxn0 : 0 < B_powerRZ n) by (apply Rgt_lt, Bexpos).
+    apply Rlt_le_trans with (1 := proj1 tmp); clear tmp.
+    apply Rmult_le_reg_r with (/B_powerRZ n).
+      now apply Rinv_0_lt_compat.
+    rewrite Rmult_assoc, Rinv_r;[ | now apply Rgt_not_eq, Rgt_lt].
+    rewrite Rmult_1_l, Rmult_1_r.
+    assert (tmp' := xcx max).
+    apply Rmult_le_reg_r with (B_powerRZ max).
+      now apply Rgt_lt, Bexpos.
+    case (Rle_lt_dec 0 x); cycle 1.
+      intros xneg; apply Rle_trans with 0.
+         generalize (Rmult_le_compat_neg_l x 0 (B_powerRZ max)
+                         (Rlt_le _ _ xneg) (Rlt_le _ _ (Bexpos _))).
+         now rewrite Rmult_0_r.
+       apply Rmult_le_pos; apply Rlt_le;[apply Rinv_0_lt_compat|]; apply Bexpos.
+    intros xge0; assert (xpos : 0 < x) by lra; clear xge0.
+    assert (xcmpos : 0 <= IZR (xc max)).
+      destruct (Z_lt_le_dec (xc max) 0).
+        enough (0 > x) by lra.
+        apply (sg_Zsgn_2 x xc max); auto; try lia.
+      now apply (IZR_le 0).
+    destruct xcmpos as [xcmpos | xcm0].
+      apply Rlt_le; apply Rlt_le_trans with (1 := proj2 tmp').
+      apply Rle_trans with (INR B * IZR (xc max)).
+        apply Rle_trans with (2 * IZR (xc max)).
+          rewrite <- mult_IZR, <- plus_IZR; apply IZR_le.
+          apply lt_IZR in xcmpos; lia.
+        apply Rmult_le_compat_r; try lra.
+        change 2 with (INR 2); apply le_INR; generalize B_sup_4; lia.
+      apply Rmult_le_reg_l with (/INR B).
+      apply Rinv_0_lt_compat.
+        apply (lt_INR 0); generalize B_sup_4; lia.
+      rewrite <- Rmult_assoc, Rinv_l, Rmult_1_l; cycle 1.
+      apply Rgt_not_eq, (lt_INR 0); generalize B_sup_4; lia.
+    assert (1 <= xc max)%Z by (apply lt_IZR in xcmpos; lia).
+    assert (INR B <> 0).
+      apply Rgt_not_eq, Rlt_gt, (lt_INR 0); generalize B_sup_4; lia.
+    apply Rle_trans with (B_powerRZ (ZlogB (Z.of_nat B) (Z.abs (xc max)) + 1)).
+    destruct (ZlogB_correct _ (xc max) B_sup_4' (lt_IZR _ _ xcmpos))
+       as [lc1 lc2].
+    apply IZR_lt in lc2.
+    apply Rle_trans with (1 := Rlt_le _ _ lc2).
+    replace (Ropp 1) with (IZR (-1)) by reflexivity.
+    rewrite powerRZ_pow; cycle 1.
+          enough (0 <= ZlogB (Z.of_nat B) (xc max))%Z by lia.
+          apply ZlogB_pos; auto.
+        rewrite Z.abs_eq; try lia.
+        rewrite <- INR_IZR_INZ; right; reflexivity. 
+      unfold B_powerRZ.
+      rewrite Rinv_powerRZ; auto.
+      replace (/INR B) with (powerRZ (INR B) (-1)).
+      rewrite <- powerRZ_add; auto.
+      rewrite <- powerRZ_add; auto.
+      rewrite Z.abs_eq; try lia.
+      apply Rle_powerRZ.
+         apply (le_INR 1); generalize B_sup_4; lia.
+      revert nl; rewrite Z.abs_eq; try lia.
+      intros nl.
+      assert (ZlogB (Z.of_nat B) (xc max) + 1 <= - n + max)%Z.
+        lia.
+    admit.
+change (-1)%Z with (-(1))%Z.
+rewrite <- Rinv_powerRZ; auto; rewrite powerRZ_1; auto.

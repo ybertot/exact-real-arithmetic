@@ -71,38 +71,29 @@ Definition absolue_reelc (xc : Reelc) : Reelc := fun n : Z => Z.abs (xc n).
 Definition addition_reelc (xc yc : Reelc) : Reelc :=
   fun n : Z => gauss_z_sur_B (xc (n + 1)%Z + yc (n + 1)%Z).
 
-Fixpoint compute_msd_N (xc : Reelc) (n current stop : Z) (fuel : nat) : Z :=
-  match fuel with
-  | 0 => stop
-  | S fuel' =>
-    let Vxc := xc current in
-    if (1 <? Z.abs Vxc)%Z then
-      current
-    else
-      compute_msd_N xc n (current + 1)%Z stop fuel'
-  end.
-
 (* This a rather naive way to compute the logarithm of x relative to B,
-  when B is a power of 2, there is a much more efficient way to do so. *)
-Fixpoint ZlogBr (x : Z) (fuel : nat) (candidate : Z) :=
+  when B is a power of 2, there is a much more efficient way to do so,
+  counting the number of constructors in the positive part of Z, and
+  dividing by the log of B relative to 2. *)
+Fixpoint ZlogBr (b' : Z) (x : Z) (fuel : nat) (candidate : Z) :=
   match fuel with
   | 0 => (candidate - 1)%Z
   | S p =>
-    if (x <? (Z.of_nat B) ^ candidate)%Z then
+    if (x <? b' ^ candidate)%Z then
       (candidate - 1)%Z
     else
-      (ZlogBr x p (candidate + 1))%Z
+      (ZlogBr b' x p (candidate + 1))%Z
   end. 
 
-Definition ZlogB (x : Z) :=
-  ZlogBr x (Z.to_nat x) 0.
+Definition ZlogB (b' : Z) (x : Z) :=
+  ZlogBr b' x (Z.to_nat x) 0.
   
-Definition compute_msd (xc : Reelc) (n stop : Z) : Z :=
-  if (1 <? Z.abs (xc 0%Z))%Z then
-    let v := ZlogB (Z.abs (xc 0%Z)) in
-    if (1 <? Z.abs (xc v))%Z then v else (v - 1)
+Definition compute_msd (b' : Z) (xc : Reelc) (max : Z) : Z :=
+  if (1 <? Z.abs (xc max%Z))%Z then
+    let v := ZlogB b' (Z.abs (xc max%Z)) in
+    if (1 <? Z.abs (xc (max - v - 1)))%Z then (max - v - 1) else (max - v)
   else
-    compute_msd_N xc n 0 stop (Z.to_nat (n +3 - Z.quot2 n)).
+    max.
 
 (* If the most significant digit (msd) of x is not yet known, this function
    will attempt to compute it with a limited amount of recursive calls
@@ -112,14 +103,14 @@ Definition compute_msd (xc : Reelc) (n stop : Z) : Z :=
    the current model.
 
    This limited computation of the most significant digit is described in
-   page 25 of V. Ménissier-Morain article in JLAP, Vol. 64 (2005), page 24
+   page 25 of V. Ménissier-Morain's article in JLAP, Vol. 64 (2005), page 24
 *)
 Definition p_max (xc : Reelc) (msd_x : option Z) (n : Z) : Z :=
   let stop := Z.quot2 (n + 2) in
   let v_msd :=
     match msd_x with
     | Some v => v
-    | None => compute_msd_N xc n 0 stop (Z.to_nat (n + 3 -Z.quot2 n))
+    | None => compute_msd (Z.of_nat B) xc (n + 3 - stop)
     end in
     Zmax (n - v_msd + 3) stop.
 
