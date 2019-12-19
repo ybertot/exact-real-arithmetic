@@ -1596,6 +1596,8 @@ destruct (Z.ltb_spec 1 (Z.abs (xc max))) as [plt | ple']; cycle 1.
       lia.
     now apply Z.gt_lt; rewrite <- meq; destruct mp as [mp1 mp2]; apply mp2.
   now generalize ple'; rewrite Z.le_ngt; intros abs; case abs.
+set (l := ZlogB _ _).
+set (l' := (_ - 1)%Z).
 set (w := Z.abs _).
 assert (B_sup_4' : (4 <= Z.of_nat B)%Z).
   replace 4%Z with (Z.of_nat 4) by (simpl; ring).
