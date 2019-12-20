@@ -1576,7 +1576,7 @@ rewrite <- positive_nat_Z.
 now rewrite <- pow_IZR.
 Qed.
 
-Lemma compute_msd_down (x : R)(xc : Reelc)
+Lemma compute_msd_down_pos (x : R)(xc : Reelc)
  (max : Z) :
  x <> 0 -> 0 < x -> encadrement xc x ->
  (msd x xc <= max)%Z ->
@@ -1735,4 +1735,31 @@ destruct (ZlogB_correct (Z.of_nat B) (xc max) B_sup_2
 rewrite INR_IZR_INZ, <- powerRZ_pow;[ |]; cycle 1.
   now rewrite <- (Z.abs_eq (xc max)).
 now apply IZR_le.
+Qed.
+
+Lemma compute_msd_opp b' xc max :
+  compute_msd b' (fun z => - (xc z))%Z max = compute_msd b' xc max.
+Proof.
+now unfold compute_msd; rewrite !Z.abs_opp.
+Qed.
+
+Lemma compute_msd_down (x : R)(xc : Reelc)
+ (max : Z) :
+ x <> 0 -> encadrement xc x ->
+ (msd x xc <= max)%Z ->
+ compute_msd (Z.of_nat B) xc max = (msd x xc).
+Proof.
+intros xn0; destruct (Rlt_dec 0 x).
+  now apply compute_msd_down_pos.
+intros xcx mp.
+assert (xcxo : encadrement (fun z => - (xc z))%Z (- x)).
+  intros k; rewrite <- Ropp_mult_distr_l, opp_IZR; destruct (xcx k); lra.
+assert (pmo: pre_msd (- x) = pre_msd x).
+  now unfold pre_msd; rewrite Rabs_Ropp.
+assert (mo : msd (-x) (fun z => - (xc z))%Z = msd x xc).
+  now unfold msd; rewrite Z.abs_opp, pmo.
+assert (cmo : compute_msd (Z.of_nat B) xc max =
+        compute_msd (Z.of_nat B) (fun z => - (xc z))%Z max).
+  now unfold compute_msd; rewrite !Z.abs_opp.
+rewrite cmo, <- mo; apply compute_msd_down_pos; auto; try lra; lia.
 Qed.
