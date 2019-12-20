@@ -107,8 +107,11 @@ sqrt (B_powerRZ (2 * z)) = B_powerRZ z.
 Proof. intros z. replace (B_powerRZ (2 * z)) with
 (B_powerRZ (z) * B_powerRZ (z)).
 apply sqrt_square. apply Rlt_le. apply Rgt_lt.
-apply Bexpos. rewrite produitB_powerRZ. unfold B_powerRZ.
-apply powerRZ_trivial. ring. Qed.
+apply Bexpos. unfold B_powerRZ.
+rewrite <- powerRZ_add.
+apply powerRZ_trivial. ring. 
+apply Rgt_not_eq, Rlt_gt, (lt_INR 0); generalize Axiomes.B_sup_4; lia.
+Qed.
 
 Lemma zetzplusunnoncarre : forall z : Z,
 (z >= 0)%Z -> (forall z2 : Z, (z2* z2 <> z)%Z) -> (forall z2 : Z, (z2* z2 <> (z + 1)%Z)%Z) ->
@@ -263,6 +266,8 @@ Lemma racine_correct :
 
 Proof.
 intros x xc H0. intro H.
+assert (Bneq0 : INR B <> 0).
+  apply Rgt_not_eq, Rlt_gt, (lt_INR 0); generalize Axiomes.B_sup_4; lia.
 unfold encadrement. intros n.
 assert (H2 : (xc (2*n) >= 0)%Z). apply contraposesg_Zsgn_2 with x.
 assumption. apply Rle_ge. assumption.
@@ -294,7 +299,8 @@ apply sqrt_lt_1_alt. split. assumption. assumption.
 replace ((-2 * n)%Z) with ((2 * (-n))%Z).
 rewrite sqrtB2n. reflexivity. ring.
  unfold B_powerRZ. rewrite Rinv_powerRZ.
-reflexivity. apply Bneq0.  rewrite Rmult_comm.
+reflexivity. auto.
+rewrite Rmult_comm.
 replace (B_powerRZ n * / B_powerRZ n) with
 (1 * B_powerRZ n * / B_powerRZ n). rewrite Rinv_r_simpl_l.
 reflexivity. apply Rgt_not_eq. apply Bexpos. ring.

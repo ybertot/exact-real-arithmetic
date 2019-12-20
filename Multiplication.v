@@ -38,6 +38,8 @@ Lemma multiplication_correct :
  omsd_prop YC msdy ->
  encadrement (multiplication_reelc XC YC msdx msdy) (X * Y).
 Proof.
+assert (Bge1 : 1 <= INR B).
+  now apply (le_INR 1); generalize B_sup_4; lia.
 unfold encadrement in |- *.
 intros X Y XC YC msdx msdy H H0 mpx mpy n.
 unfold multiplication_reelc in |- *.
@@ -150,6 +152,28 @@ now rewrite Zmult_comm; auto.
 
 clear X Y XC YC H1 msdx msdy.
 intros x y xc yc msdx msdy H H0 H2 H01 H02 mpx mpy.
+assert (p_max_xc_q :
+          p_max xc msdx n = Z.max (n - msd x xc + 3) (Z.quot2 (n + 2))).
+unfold p_max in |- *.
+assert (tmp := fun v => omsd_prop1 x xc msdx v H01 H0 mpx).
+destruct msdx as [v | ].
+  now rewrite (tmp v eq_refl).
+destruct (Z_lt_le_dec (n + 3 - Z.quot2 (n + 2)) (msd x xc)) as [ml | mg].
+  rewrite (compute_msd_up x xc _ H01 H0 ml).
+  replace (n - (n + 3 - Z.quot2 (n + 2)) + 3)%Z with (Z.quot2 (n + 2)) by ring.
+  rewrite Z.max_id; lia.
+rewrite (compute_msd_down x xc _ H01 H0 mg), Z.max_l; lia.
+assert (p_max_yc_q :
+          p_max yc msdy n = Z.max (n - msd y yc + 3) (Z.quot2 (n + 2))).
+unfold p_max in |- *.
+assert (tmp := fun v => omsd_prop1 y yc msdy v H02 H2 mpy).
+destruct msdy as [v | ].
+  now rewrite (tmp v eq_refl).
+destruct (Z_lt_le_dec (n + 3 - Z.quot2 (n + 2)) (msd y yc)) as [ml | mg].
+  rewrite (compute_msd_up y yc _ H02 H2 ml).
+  replace (n - (n + 3 - Z.quot2 (n + 2)) + 3)%Z with (Z.quot2 (n + 2)) by ring.
+  rewrite Z.max_id; lia.
+rewrite (compute_msd_down y yc _ H02 H2 mg), Z.max_l; lia.
 cut
  (IZR (Z.abs (xc (p_max yc msdy n)) + Z.abs (yc (p_max xc msdx n))) *
   / B_powerRZ (p_max yc msdy n + p_max xc msdx n - n) <= 1 * / 2).  
@@ -615,21 +639,9 @@ apply Zplus_le_reg_l with (p_max xc msdx n).
 RingReplace (p_max xc msdx n + (- p_max xc msdx n + - msd x xc + n + 3))%Z
  (n - msd x xc + 3)%Z.
 rewrite <- Zplus_0_r_reverse.
-unfold p_max in |- *.
-assert (tmp := fun v => omsd_prop1 x xc msdx v H01 H0 mpx).
-destruct msdx as [v | ].
-  rewrite (tmp v eq_refl).
-apply Zle_max_l. 
-assert (compute_P :
-          forall k,
-          (msd x xc <= compute_msd_N xc n 0 (Z.quot2 (n + 2))
-           (Z.to_nat (n + 3 - Z.quot2 n)))%Z).
-
-unfold B_powerRZ in |- *; apply Rle_powerRZ.
-apply Rlt_le; apply Rlt_le_trans with (INR 4).
-do 4 rewrite S_INR. 
-simpl in |- *; lra.
-apply le_INR; generalize B_sup_4; omega.
+rewrite p_max_xc_q.
+  now apply Zle_max_l.
+unfold B_powerRZ in |- *; apply Rle_powerRZ; auto.
 rewrite Zplus_comm.
 apply Zplus_le_reg_r with (Z.succ (Z.succ (Z.succ 0))).
 simpl in |- *.
@@ -638,7 +650,7 @@ apply Zplus_le_reg_l with (p_max yc msdy n).
 RingReplace (p_max yc msdy n + (- p_max yc msdy n + - msd y yc + n + 3))%Z
  (n - msd y yc + 3)%Z.
 rewrite <- Zplus_0_r_reverse.
-unfold p_max in |- *.
+rewrite p_max_yc_q.
 apply Zle_max_l. 
 unfold B_powerRZ in |- *; apply powerRZ_add; apply Rgt_not_eq; apply Rlt_gt;
  apply INR_B_non_nul.
@@ -652,44 +664,21 @@ unfold B_powerRZ in |- *; symmetry  in |- *; apply Rinv_powerRZ.
 apply Rgt_not_eq; apply Rlt_gt; apply INR_B_non_nul.
 rewrite Rmult_assoc; apply Rmult_eq_compat_l.
 unfold B_powerRZ in |- *.
-replace (powerRZ (INR B) (Z.succ (Z.succ (Z.succ 0)))) with
- (powerRZ (INR B) (Z.succ (Z.succ 0)) * INR B).
-replace (/ (powerRZ (INR B) (Z.succ (Z.succ 0)) * INR B)) with
- (/ powerRZ (INR B) (Z.succ (Z.succ 0)) * / INR B).
-rewrite Rmult_comm; rewrite Rmult_assoc.
-replace (/ INR B * INR B) with 1.
-rewrite RIneq.Rmult_1_r; auto.
-apply Rinv_l_sym.
-apply Rgt_not_eq; apply Rlt_gt; apply INR_B_non_nul.
-symmetry  in |- *; apply Rinv_mult_distr.
-apply Rgt_not_eq; apply Rlt_gt; apply powerRZ_lt; apply INR_B_non_nul.
-apply Rgt_not_eq; apply Rlt_gt; apply INR_B_non_nul.
-symmetry  in |- *; apply powerRZ_Zs.
-apply Rgt_not_eq; apply Rlt_gt; apply INR_B_non_nul.
-rewrite Rmult_comm; apply Rle_Rinv_monotony.
-unfold B_powerRZ in |- *; apply powerRZ_lt; apply INR_B_non_nul.
-rewrite Rmult_1l.
-apply Rle_mult_inv.
-lra.
-unfold B_powerRZ in |- *.
-replace (powerRZ (INR B) (Z.succ (Z.succ 0))) with (INR B * INR B).
-apply Rmult_le_compat.
-lra.
-lra.
-replace 4 with (INR 4).
-apply le_INR; generalize B_sup_4; omega.
-do 4 rewrite S_INR; simpl in |- *; ring. 
-apply Rle_trans with 4.
-lra.
-replace 4 with (INR 4).
-apply le_INR; generalize B_sup_4; omega.
-do 4 rewrite S_INR; simpl in |- *; ring.
-RingReplace (Z.succ (Z.succ 0)) (Z.succ 0 + Z.succ 0)%Z.
-replace (powerRZ (INR B) (Z.succ 0 + Z.succ 0)) with
- (powerRZ (INR B) (Z.succ 0) * powerRZ (INR B) (Z.succ 0)).
-rewrite powerRZ_1; auto.
-symmetry  in |- *; apply powerRZ_add. 
-apply Rgt_not_eq; apply Rlt_gt; apply INR_B_non_nul.
+replace 3%Z with (1 + 2)%Z by ring.
+rewrite powerRZ_add, powerRZ_1, Rinv_mult_distr; try lra.
+rewrite <- Rmult_assoc, Rinv_r; try lra.
+  now apply Rgt_not_eq, Rlt_gt, Bexpos.
+rewrite Rmult_1_l; auto.
+enough (/ B_powerRZ 2 <= / (4 * 4)) by lra.
+apply Rinv_le;[now apply Bexpos | lra | ].
+replace 2%Z with (1 + 1)%Z by ring.
+assert (INR B <> 0).
+apply Rgt_not_eq, Rlt_gt, (lt_INR 0); generalize B_sup_4; lia.
+assert (4 <= INR B).
+  replace 4 with (INR 4) by (simpl; lra).
+  apply (le_INR 4); exact B_sup_4.
+unfold B_powerRZ; rewrite powerRZ_add; auto.
+rewrite powerRZ_1; apply Rmult_le_compat; auto; try lra.
 
 (* Marker. *)
 intro.
@@ -715,9 +704,9 @@ apply Rlt_le; apply Rinv_0_lt_compat; unfold B_powerRZ in |- *;
 apply Rplus_le_compat.
 RingReplace 1 (IZR (Z.succ 0)).
 apply IZR_le.
-apply msd_ax3.
-auto.
+apply (msd_ax3 x xc _ H01 H0 H1).
 apply msd_ax2 with y; auto.
+now apply msd_prop2; auto.
 apply msd_ax1; auto.
 rewrite Rmult_plus_distr_r; rewrite Rmult_1l; apply Rplus_eq_compat_l. 
 rewrite Rmult_assoc; symmetry  in |- *; rewrite Rmult_assoc;
@@ -770,7 +759,7 @@ apply Zplus_le_reg_r with (- msd y yc)%Z.
 simpl in |- *.
 RingReplace (n + 3 + - msd y yc)%Z (n - msd y yc + 3)%Z.
 RingReplace (p_max yc msdy n + msd y yc + - msd y yc)%Z (p_max yc msdy n).
-unfold p_max in |- *.
+rewrite p_max_yc_q.
 apply Zle_max_l. 
 unfold B_powerRZ in |- *; apply powerRZ_add.
 apply Rgt_not_eq; apply Rlt_gt; apply INR_B_non_nul.
@@ -856,8 +845,10 @@ rewrite plus_IZR.
 rewrite Rmult_comm; rewrite Rmult_plus_distr_r.
 apply Rplus_le_compat.
 rewrite Rmult_comm; apply msd_ax2 with x; auto.
-apply msd_ax1; auto.
+now apply msd_prop2.
+now apply msd_ax1; auto.
 rewrite Rmult_comm; apply msd_ax2 with y; auto.
+now apply msd_prop2.
 rewrite Rmult_assoc; apply Rmult_eq_compat_l.
 rewrite Rmult_plus_distr_r.
 apply Rplus_plus_plus.
@@ -920,7 +911,7 @@ apply Zplus_le_reg_l with (p_max xc msdx n).
 RingReplace (p_max xc msdx n + (- p_max xc msdx n + - msd x xc + n + 3))%Z
  (n - msd x xc + 3)%Z.
 rewrite <- Zplus_0_r_reverse.
-unfold p_max in |- *.
+rewrite p_max_xc_q.
 apply Zle_max_l. 
 unfold B_powerRZ in |- *; apply Rle_powerRZ.
 apply Rlt_le; apply Rlt_le_trans with (INR 4).
@@ -935,7 +926,7 @@ apply Zplus_le_reg_l with (p_max yc msdy n).
 RingReplace (p_max yc msdy n + (- p_max yc msdy n + - msd y yc + n + 3))%Z
  (n - msd y yc + 3)%Z.
 rewrite <- Zplus_0_r_reverse.
-unfold p_max in |- *.
+rewrite p_max_yc_q.
 apply Zle_max_l. 
 unfold B_powerRZ in |- *; apply powerRZ_add; apply Rgt_not_eq; apply Rlt_gt;
  apply INR_B_non_nul.
@@ -1010,12 +1001,11 @@ apply Rlt_le; apply Rinv_0_lt_compat; unfold B_powerRZ in |- *;
  apply powerRZ_lt; apply INR_B_non_nul.
 apply Rplus_le_compat.
 apply msd_ax2 with x; auto.
-apply msd_ax1.
-auto.
+now apply msd_prop2.
+now apply msd_ax1.
 RingReplace 1 (IZR (Z.succ 0)).
 apply IZR_le.
-apply msd_ax3.
-auto.
+apply (msd_ax3 y yc _ H02 H2 H3).
 rewrite Rmult_plus_distr_r.
 rewrite Rmult_1l.
 rewrite Rplus_comm; symmetry  in |- *; rewrite Rplus_comm;
@@ -1071,7 +1061,7 @@ apply Zplus_le_reg_r with (- msd x xc)%Z.
 simpl in |- *.
 RingReplace (n + 3 + - msd x xc)%Z (n - msd x xc + 3)%Z.
 RingReplace (p_max xc msdx n + msd x xc + - msd x xc)%Z (p_max xc msdx n).
-unfold p_max in |- *.
+rewrite p_max_xc_q.
 apply Zle_max_l. 
 unfold B_powerRZ in |- *; apply powerRZ_add.
 apply Rgt_not_eq; apply Rlt_gt; apply INR_B_non_nul.
