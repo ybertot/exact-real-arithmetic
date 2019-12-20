@@ -68,7 +68,7 @@ now rewrite Z.add_simpl_r; auto.
 Qed.
 
 Lemma ZlogB_correct (b' x : Z) :
-  (4 <= b')%Z ->
+  (2 <= b')%Z ->
   (0 < x)%Z -> (b' ^ ZlogB b' x <= x < b' ^ (ZlogB b' x + 1))%Z.
 Proof.
 intros b'sup4 xgt0. (* ; assert (tmp := ZlogBr b' x (Z.to_nat x) 1). *)
@@ -85,8 +85,9 @@ intros y yge0 IH.
 replace (Z.succ y) with (y + 1)%Z by ring.
 rewrite (Z.pow_add_r); try lia.
 rewrite Z.pow_1_r.
-  apply Z.le_lt_trans with ((y + 1) * 2)%Z; try lia.
-apply Zmult_lt_compat; lia.
+apply Z.le_lt_trans with ((y + 1) * 2)%Z; try lia.
+rewrite (Zmult_comm (y + 1)), <- (Zmult_comm b').
+apply Zmult_lt_compat2; lia.
 Qed.
 
 Lemma gauss_sur_B_O :
@@ -1577,11 +1578,11 @@ Qed.
 
 Lemma compute_msd_down (x : R)(xc : Reelc)
  (max : Z) :
- x <> 0 -> encadrement xc x ->
+ x <> 0 -> 0 < x -> encadrement xc x ->
  (msd x xc <= max)%Z ->
  compute_msd (Z.of_nat B) xc max = (msd x xc).
 Proof.
-intros xn0 xcx mm; unfold compute_msd.
+intros xn0 xgt0 xcx mm; unfold compute_msd.
 assert (mp : msd_prop xc (msd x xc)) by now apply msd_prop2.
 destruct (mp) as [ple _].
 assert (mm' := Z.le_ge _ _ mm).
@@ -1596,80 +1597,97 @@ destruct (Z.ltb_spec 1 (Z.abs (xc max))) as [plt | ple']; cycle 1.
       lia.
     now apply Z.gt_lt; rewrite <- meq; destruct mp as [mp1 mp2]; apply mp2.
   now generalize ple'; rewrite Z.le_ngt; intros abs; case abs.
+assert (xcmpos' : 0 <= IZR (xc max)).
+  destruct (Z_lt_le_dec (xc max) 0).
+    enough (0 > x) by lra.
+    apply (sg_Zsgn_2 x xc max); auto; lia.
+  now apply (IZR_le 0).
+assert (xcmpos : 0 < IZR (xc max)).
+  apply IZR_lt; generalize plt; rewrite Z.abs_eq; [lia |].
+  now apply le_IZR.
 set (l := ZlogB _ _).
+assert (0 <= l)%Z.
+  unfold l; apply ZlogB_pos.
+  apply Z.le_trans with (2 := proj1 main).
+  assert (tmp := Bexpos (max - msd x xc)).
+  rewrite <- Z.lt_pred_le; cbv[Z.pred Z.add Z.pos_sub].
+  apply lt_IZR; rewrite inverseB_power;[lra | lia].
 set (l' := (_ - 1)%Z).
 set (w := Z.abs _).
+assert (0 <= x) by lra.
+assert (INR B <> 0).
+  apply Rgt_not_eq, Rlt_gt, (lt_INR 0); generalize B_sup_4; lia.
 assert (B_sup_4' : (4 <= Z.of_nat B)%Z).
   replace 4%Z with (Z.of_nat 4) by (simpl; ring).
   apply inj_le; exact B_sup_4.
-destruct (Z.ltb_spec 1 w).
+assert (B_sup_2 : (2 <= Z.of_nat B)%Z) by lia.
+assert (1 <= INR B).
+  apply (le_INR 1); generalize B_sup_4; lia.
+assert (sg_n : forall n, (0 <= xc n)%Z).
+  intros n.
+  destruct (Z_lt_le_dec (xc n) 0) as [abs | ?]; try lia.
+  assert (tmp := sg_Zsgn_2 x xc n xcx (Z.lt_gt _ _ abs)); lra.
+destruct (Z.ltb_spec 1 w) as [wbig | wsmall].
   apply (msd_prop_unique x xc); auto.
   split;[ | now apply Z.lt_gt; auto].
-  intros n nl; assert (tmp := xcx n).
+  intros n nl.
+  assert (acmpb : Rabs x < B_powerRZ((l + 1) - max)).
+    replace ((l + 1) - max)%Z with ((l + 1) + (- max))%Z by ring.
+    unfold B_powerRZ; rewrite powerRZ_add; auto.
+    rewrite <-Rinv_powerRZ; auto.
+    rewrite Rabs_pos_eq; auto.
+    apply Rmult_lt_reg_r with (B_powerRZ max).
+      now apply Bexpos.
+    rewrite Rmult_assoc, Rinv_l, Rmult_1_r; cycle 1.
+      now apply Rgt_not_eq, Rlt_gt, Bexpos.
+    apply Rlt_le_trans with (1 := proj2 (xcx max)).
+    rewrite <- plus_IZR.
+    rewrite INR_IZR_INZ, <- powerRZ_pow;[ | lia].
+    apply IZR_le; enough (xc max < Z.of_nat B ^ (l + 1))%Z by lia.
+    destruct (ZlogB_correct (Z.of_nat B) (xc max) B_sup_2
+                (lt_IZR _ _ xcmpos)) as [_ it].
+    now unfold l; rewrite Z.abs_eq; auto; apply le_IZR.
+  assert (xbn: 0 < Rabs x * B_powerRZ n < 1).
+    rewrite Rabs_pos_eq; auto.
+    split.
+      now apply Rmult_lt_0_compat; auto; apply Bexpos.
+    apply Rmult_lt_reg_r with (B_powerRZ (- n)).
+      now apply Bexpos.
+    unfold B_powerRZ; rewrite Rmult_assoc, <- powerRZ_add; auto.
+    rewrite Z.add_opp_diag_r, powerRZ_O, Rmult_1_l, Rmult_1_r.
+    rewrite Rabs_pos_eq in acmpb; auto.
+    apply Rlt_le_trans with (1 := acmpb).
+    apply Rle_powerRZ; auto; lia.
+  rewrite Z.abs_eq; auto.
   rewrite <- Z.lt_succ_r; unfold Z.succ.
-  apply lt_IZR; simpl; rewrite abs_IZR.
-  apply Rabs_def1.
-    enough (IZR (xc n) - 1 < 1) by lra.
-    assert (xbxn0 : 0 < B_powerRZ n) by (apply Rgt_lt, Bexpos).
-    apply Rlt_le_trans with (1 := proj1 tmp); clear tmp.
-    apply Rmult_le_reg_r with (/B_powerRZ n).
-      now apply Rinv_0_lt_compat.
-    rewrite Rmult_assoc, Rinv_r;[ | now apply Rgt_not_eq, Rgt_lt].
-    rewrite Rmult_1_l, Rmult_1_r.
-    assert (tmp' := xcx max).
-    apply Rmult_le_reg_r with (B_powerRZ max).
-      now apply Rgt_lt, Bexpos.
-    case (Rle_lt_dec 0 x); cycle 1.
-      intros xneg; apply Rle_trans with 0.
-         generalize (Rmult_le_compat_neg_l x 0 (B_powerRZ max)
-                         (Rlt_le _ _ xneg) (Rlt_le _ _ (Bexpos _))).
-         now rewrite Rmult_0_r.
-       apply Rmult_le_pos; apply Rlt_le;[apply Rinv_0_lt_compat|]; apply Bexpos.
-    intros xge0; assert (xpos : 0 < x) by lra; clear xge0.
-    assert (xcmpos : 0 <= IZR (xc max)).
-      destruct (Z_lt_le_dec (xc max) 0).
-        enough (0 > x) by lra.
-        apply (sg_Zsgn_2 x xc max); auto; try lia.
-      now apply (IZR_le 0).
-    destruct xcmpos as [xcmpos | xcm0].
-      apply Rlt_le; apply Rlt_le_trans with (1 := proj2 tmp').
-      apply Rle_trans with (INR B * IZR (xc max)).
-        apply Rle_trans with (2 * IZR (xc max)).
-          rewrite <- mult_IZR, <- plus_IZR; apply IZR_le.
-          apply lt_IZR in xcmpos; lia.
-        apply Rmult_le_compat_r; try lra.
-        change 2 with (INR 2); apply le_INR; generalize B_sup_4; lia.
-      apply Rmult_le_reg_l with (/INR B).
-      apply Rinv_0_lt_compat.
-        apply (lt_INR 0); generalize B_sup_4; lia.
-      rewrite <- Rmult_assoc, Rinv_l, Rmult_1_l; cycle 1.
-      apply Rgt_not_eq, (lt_INR 0); generalize B_sup_4; lia.
-    assert (1 <= xc max)%Z by (apply lt_IZR in xcmpos; lia).
-    assert (INR B <> 0).
-      apply Rgt_not_eq, Rlt_gt, (lt_INR 0); generalize B_sup_4; lia.
-    apply Rle_trans with (B_powerRZ (ZlogB (Z.of_nat B) (Z.abs (xc max)) + 1)).
-    destruct (ZlogB_correct _ (xc max) B_sup_4' (lt_IZR _ _ xcmpos))
-       as [lc1 lc2].
-    apply IZR_lt in lc2.
-    apply Rle_trans with (1 := Rlt_le _ _ lc2).
-    replace (Ropp 1) with (IZR (-1)) by reflexivity.
-    rewrite powerRZ_pow; cycle 1.
-          enough (0 <= ZlogB (Z.of_nat B) (xc max))%Z by lia.
-          apply ZlogB_pos; auto.
-        rewrite Z.abs_eq; try lia.
-        rewrite <- INR_IZR_INZ; right; reflexivity. 
-      unfold B_powerRZ.
-      rewrite Rinv_powerRZ; auto.
-      replace (/INR B) with (powerRZ (INR B) (-1)).
-      rewrite <- powerRZ_add; auto.
-      rewrite <- powerRZ_add; auto.
-      rewrite Z.abs_eq; try lia.
-      apply Rle_powerRZ.
-         apply (le_INR 1); generalize B_sup_4; lia.
-      revert nl; rewrite Z.abs_eq; try lia.
-      intros nl.
-      assert (ZlogB (Z.of_nat B) (xc max) + 1 <= - n + max)%Z.
-        lia.
-    admit.
-change (-1)%Z with (-(1))%Z.
-rewrite <- Rinv_powerRZ; auto; rewrite powerRZ_1; auto.
+  enough (xc n - 1 < 1)%Z by lia.
+  apply lt_IZR; rewrite minus_IZR.
+  apply Rlt_trans with (2 := proj2 xbn); rewrite Rabs_pos_eq; auto.
+  assert (res := xcx n); tauto.
+apply (msd_prop_unique x xc); auto.
+split.
+  intros n nl; assert (nl' : (n <= l')%Z) by lia.
+  apply Zle_lt_or_eq in nl'; destruct nl' as [nl' | nl']; cycle 1.
+    now rewrite nl'.
+  rewrite Z.abs_eq; auto.
+  rewrite <- Z.lt_succ_r; change (Z.succ 1) with (2%Z).
+  apply lt_IZR.
+  apply Rlt_le_trans with (x * B_powerRZ n + 1).
+  destruct (xcx n); lra.
+  enough (x * B_powerRZ n <= 1) by lra.
+  apply Rmult_le_reg_r with (B_powerRZ (max - l - n - 1)).
+    apply Bexpos.
+  unfold B_powerRZ; rewrite Rmult_assoc, <- powerRZ_add; auto.
+  replace (n + (max - l - n - 1))%Z with (max - l - 1)%Z by lia.
+  apply Rle_trans with 2.
+    destruct (xcx (max - l - 1)%Z) as [_ it].
+    unfold w in wsmall; rewrite Z.abs_eq in wsmall; auto.
+    fold l' in it |- *; unfold B_powerRZ in it.
+    assert (xcl' : (0 <= xc l')%Z) by auto.
+    apply IZR_le in xcl'; apply IZR_le in wsmall.
+    lra.
+  apply Rle_trans with (B_powerRZ 1).
+    unfold B_powerRZ; rewrite powerRZ_1; apply (le_INR 2).
+    generalize B_sup_4; lia.
+  rewrite Rmult_1_l.
+  apply Rle_powerRZ; auto; lia.

@@ -91,7 +91,8 @@ Definition ZlogB (b' : Z) (x : Z) :=
 Definition compute_msd (b' : Z) (xc : Reelc) (max : Z) : Z :=
   if (1 <? Z.abs (xc max%Z))%Z then
     let v := ZlogB b' (Z.abs (xc max%Z)) in
-    if (1 <? Z.abs (xc (max - v - 1)))%Z then (max - v - 1) else (max - v)
+    if (1 <? Z.abs (xc (max - v - 1)))%Z then (max - v - 1) else 
+       if (1 <? Z.abs (xc (max - v)))%Z then (max - v) else (max - v + 1)
   else
     max.
 
