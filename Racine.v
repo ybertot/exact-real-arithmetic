@@ -15,6 +15,7 @@ Require Import Zarith_inegalites.
 Require Import Zarith_operations.
 Require Import powerRZ_complements.
 Require Import Inverse.
+Require Import Axiomes.
 
 Lemma contraposesg_Zsgn_2 :
  forall (x : R) (xc : Reelc) (n : Z),
@@ -110,7 +111,7 @@ apply sqrt_square. apply Rlt_le. apply Rgt_lt.
 apply Bexpos. unfold B_powerRZ.
 rewrite <- powerRZ_add.
 apply powerRZ_trivial. ring. 
-apply Rgt_not_eq, Rlt_gt, (lt_INR 0); generalize Axiomes.B_sup_4; lia.
+apply Rgt_not_eq, Rlt_gt, (lt_INR 0); generalize B_sup_4; lia.
 Qed.
 
 Lemma zetzplusunnoncarre : forall z : Z,
@@ -267,7 +268,7 @@ Lemma racine_correct :
 Proof.
 intros x xc H0. intro H.
 assert (Bneq0 : INR B <> 0).
-  apply Rgt_not_eq, Rlt_gt, (lt_INR 0); generalize Axiomes.B_sup_4; lia.
+  apply Rgt_not_eq, Rlt_gt, (lt_INR 0); generalize B_sup_4; lia.
 unfold encadrement. intros n.
 assert (H2 : (xc (2*n) >= 0)%Z). apply contraposesg_Zsgn_2 with x.
 assumption. apply Rle_ge. assumption.

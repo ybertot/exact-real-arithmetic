@@ -106,13 +106,6 @@ Qed.
 Hint Resolve gauss_sur_B_O: real.
 
 
-(*
-Axiom msd_c :
-    forall xc : Reelc,
-    (forall n : Z, (n < msd xc)%Z -> (Z.abs (xc n) <= 1)%Z) /\
-    (Z.abs (xc (msd xc)) > 1)%Z. 
-*)
-
 Definition pre_msd (x : R) := (- (Int_part (Rlog (Rabs x) (INR B))))%Z.
 
 Definition msd (x : R) (xc : Reelc) :=
